@@ -139,5 +139,7 @@ __azurite_db*__.json
 
 # Data
 data/
+data_processing/unzipped_files
+data_processing/downloads
 
 .DS_Store
