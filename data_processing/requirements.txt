@@ -1,0 +1,5 @@
+requests
+geopandas
+psycopg2
+shapely
+pyproj
