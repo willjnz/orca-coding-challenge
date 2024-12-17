@@ -1,3 +1,4 @@
+"""
 # Retrieve a small subset of USACE survey data (e.g., DEM files for a specific region).
 # https://ehydroprod.blob.core.usgovcloudapi.net/ehydro-surveys/CESAJ/CK_01_CKH_20160524_CS_2016_038_05.ZIP
 
@@ -22,7 +23,7 @@ for each file:
     get bathymetry data
     create smooth, even depth contour lines.
     insert each as a feature in a postgis table
-
+"""
 
 
 import os
@@ -36,6 +37,10 @@ import psycopg2
 from io import BytesIO
 from zipfile import ZipFile
 from pyproj import Proj, transform
+import rasterio
+import numpy as np
+from rasterio.warp import calculate_default_transform, reproject, Resampling
+from scipy.ndimage import gaussian_filter
 
 # Define a function to download the file
 def download_file(url, save_path):
@@ -52,26 +57,6 @@ def unzip_file(zip_path, extract_to):
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall(extract_to)
     print(f"Unzipped: {zip_path}")
-
-# Define a function to parse the KMZ and extract the bathymetry data
-def extract_kmz(kmz_path):
-    with zipfile.ZipFile(kmz_path, 'r') as kmz:
-        kmz.extractall('temp_kmz')
-    # The KMZ file contains KML, which is XML format
-    kml_file = 'temp_kmz/doc.kml'  # KMZ contains a KML file named doc.kml
-    with open(kml_file, 'r') as file:
-        kml_content = file.read()
-    tree = ET.ElementTree(ET.fromstring(kml_content))
-    root = tree.getroot()
-    # Extract relevant bathymetry data here (you need to adjust for your specific XML structure)
-    # This will vary based on the structure of your KML file
-    coordinates = []
-    for coord in root.iter('.//coordinates'):
-        coords = coord.text.strip().split()
-        for c in coords:
-            lon, lat, depth = c.split(',')
-            coordinates.append((float(lon), float(lat), float(depth)))
-    return coordinates
 
 # Define a function to process bathymetry data and create contours
 def generate_contours(bathymetry_data, depth_intervals):
@@ -115,17 +100,16 @@ soup = BeautifulSoup(html_content, 'html.parser')
 # Find all download links
 download_links = soup.find_all('a', href=True)
 
-# Database connection parameters (adjust as needed)
 db_params = {
-    'dbname': 'your_database_name',
-    'user': 'your_database_user',
-    'password': 'your_database_password',
-    'host': 'localhost',  # Replace with your PostGIS host
-    'port': '5432'        # Default PostgreSQL port
+    'dbname': 'postgres',
+    'user': 'postgres',
+    'password': 'postgres',
+    'host': 'localhost',
+    'port': '5432'
 }
 
 # Define the table name where we will store the contours
-table_name = 'your_postgis_table_name'
+table_name = 'bathymetry_contours'
 
 # Depth intervals (example: 0m, 0.5m, 1m, 2m, 5m, 10m)
 depth_intervals = [0, 0.5, 1, 2, 5, 10]
@@ -145,16 +129,56 @@ for link in download_links:
 
     # Step 2: Unzip the downloaded file
     unzip_file(zip_filepath, 'unzipped_files')
+    
+    raster_filepath = zip_filename.replace('CESAW_DIS_', '').replace('.ZIP', '') + '_tin\\tdenv9.adf'
+    
+    with rasterio.open(adf_file) as src:
+        data = src.read(1)  # Reading the first band
+        transform = src.transform
+        crs = src.crs
+        
+    dst_crs = 'EPSG:4326'
+    transform, width, height = calculate_default_transform(crs, dst_crs, src.width, src.height, *src.bounds)
+    
+    # Create an empty destination array
+    data_reprojected = np.empty((height, width), dtype=np.float32)
+    
+    # Reproject the data
+    with rasterio.open(
+        "reprojected.tif", 'w', driver='GTiff', height=height, width=width, count=1, dtype=data_reprojected.dtype,
+        crs=dst_crs, transform=transform
+    ) as dst:
+        reproject(
+            source=(data, crs),
+            destination=(data_reprojected, dst_crs),
+            src_transform=transform,
+            src_crs=crs,
+            dst_transform=transform,
+            dst_crs=dst_crs,
+            resampling=Resampling.nearest
+        )
 
-    # Step 3: Find the KMZ file (adjust the logic based on your ZIP contents)
-    kmz_file = os.path.join('unzipped_files', 'IC_03_T10_20241205_CS_TIN.kmz')  # Adjust for each file
-    bathymetry_data = extract_kmz(kmz_file)
+    # Step 4: Generate Smoothed Contour Lines
+    # Apply Gaussian smoothing filter
+    smoothed_data = gaussian_filter(data_reprojected, sigma=1)
+    
+    
+    # Generate contour lines from smoothed data
+import matplotlib.pyplot as plt
+from matplotlib import colors
 
+contours = plt.contour(smoothed_data, levels=np.arange(0, smoothed_data.max(), 1), colors='black')
+contour_polygons = []
+
+for collection in contours.collections:
+    for path in collection.get_paths():
+        coords = path.vertices
+        contour_polygons.append(Polygon(coords))
     # Step 4: Generate smooth depth contours
     contours = generate_contours(bathymetry_data, depth_intervals)
 
     # Step 5: Insert contours into PostGIS database
-    insert_contours_into_postgis(contours, table_name, db_params)
+    # insert_contours_into_postgis(contours, table_name, db_params)
 
 # Clean up (optional)
 # os.rmdir('unzipped_files')  # Remove unzipped folder if you want to clean up

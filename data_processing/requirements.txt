@@ -3,3 +3,7 @@ geopandas
 psycopg2
 shapely
 pyproj
+beautifulsoup4
+rasterio
+numpy
+scipy
