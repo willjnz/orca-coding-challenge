@@ -1,0 +1,27 @@
+.modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 85%;
+  background-color: white;
+  /* box-shadow: 24; */
+  padding: 24px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px
+}
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width:100%;
+}
+.modalContent {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.closeButton {
+  margin-left: auto;
+}
