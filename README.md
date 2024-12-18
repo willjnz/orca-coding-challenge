@@ -2,14 +2,21 @@
 The challenge is documented in Instructions.md. Here is my implementation:
 
  #### Tool choices and rationale:
- I am aiming to make a pipeline and architecture that completes the task well and is simple to set up. I am using a mix of tools, that are running locally, and without any consideration for security. GDAL is simple to use and extremely powerful so it does the main 
+ - I am aiming to make a pipeline and architecture that completes the task well and is simple to set up. I am using a mix of tools, that are running locally, and without any consideration for security. Once deployed, security would be of upmost importance. GDAL is simple to use and extremely powerful so it does the main processing.
 
- - I have output depth isoline polylines. These could be converted to polygons if needed (we would need to account for the edges of the AOI because these will cut polygons).
+ - I have output depth isoline polylines. These could simply be converted to polygons if needed (we would need to account for the edges of the AOI because these will cut polygons).
 
-#### Include strategies (if applicable) for optimizing processing workflows (e.g., leveraging PostGIS functions, batch processing):
-- Airflow for orchestration, scheduling, monitoring.
-- Containerise \data_processing\main.py so that its dependencies are reliably working. Then move away from GDAL shell commands, and use Python packages instead. 
-- Run PostgreSQL in another Docker container.
+#### Strategies for optimizing processing workflows:
+- Apache Airflow is ideal for automating data processing pipelines. It can manage complex data workflows. It allows for the orchestration of tasks.
+- Containerise \data_processing\main.py for dependency management.
+- Move Away from GDAL Shell Commands and Use Python Packages. This allows for more intense analysis, simplifies the pipeline, and ensures better error handling and debugging.
+- Run PostgreSQL in Another Docker Container. This provides the flexibility to scale and configure the database independently. Resource allocation, and backup/recover are made simpler.
+- Leverage PostGIS Functions for Geospatial Processing: I am already simplifying using PostGIS. If we had to do queries or joins then we should definitely use PostGIS.
+- Batch processing with Airflow:  break the processing of large bathymetry datasets into smaller, discrete tasks. For example, you can split the dataset by geographical regions, or depth ranges, and then process each batch separately.
+- Parallel Execution: whether using Airflow or not, executing multiple tasks in parallel, should significantly speed up processing when dealing with large datasets. For example, you can process different regions or depth layers concurrently.
+- Batch processing with PostgreSQL: Use SQL to handle large data volumes in batches. This can be done by processing data in chunks, running batch jobs that process records in smaller pieces, and updating the status of each batch. This prevents the processing pipeline from overloading the system when working with large datasets.
+- Add Data Validation and Logging. This would be done manually for now I think.
+- Add Automated Testing. Unit and Integration tests.
 - 
 # Setup:
 
