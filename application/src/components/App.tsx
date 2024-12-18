@@ -29,6 +29,7 @@ export default function App(): JSX.Element {
     // Remove existing layer if it exists
     if (map.getSource('contours')) {
       map.removeLayer('contours');
+      map.removeLayer('contour-labels');
       map.removeSource('contours');
     }
 
@@ -71,6 +72,32 @@ export default function App(): JSX.Element {
       },
       'building-number-label' // Add this layer under the map labels
     );
+
+    // Add the symbol layer for the labels
+    map.addLayer(
+      {
+        id: 'contour-labels',
+        type: 'symbol',
+        source: 'contours',
+        'source-layer': 'default',
+        layout: {
+          'text-field': ['get', 'depth_m'],
+          'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+          'text-size': 12,
+          'text-anchor': 'center',
+          'text-allow-overlap': true,
+          'text-ignore-placement': false,
+          'symbol-placement': 'line',
+          'text-offset': [0, 0.5],
+        },
+        paint: {
+          'text-color': '#000',
+          'text-halo-color': '#fff',
+          'text-halo-width': 2,
+        },
+      },
+      'building-number-label'
+    ); // Add this layer under the map labels
   };
 
   useEffect(() => {
