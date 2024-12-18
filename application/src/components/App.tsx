@@ -10,7 +10,7 @@ export default function App(): JSX.Element {
   type TInterval = '50' | '100' | '500' | '100000';
   const intervals: TInterval[] = ['50', '100', '500', '100000'];
 
-  const [selectedInterval, setSelectedInterval] = useState<TInterval>('100');
+  const [selectedInterval, setSelectedInterval] = useState<TInterval>('100000');
   const [isMapLoaded, setIsMapLoaded] = useState(false); // To track map loading state
 
   const legendData = [

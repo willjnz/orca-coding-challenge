@@ -118,7 +118,22 @@ def add_spatial_index(interval, conn):
 def main():
     print("Starting pipeline.")
     # Set up parameters
-    url = "https://gis.ngdc.noaa.gov/arcgis/rest/services/multibeam_mosaic/ImageServer/exportImage?bbox=-131.79583,37.87750,-124.29583,43.89500&bboxSR=4326&size=9000,7221&imageSR=4326&format=tiff&nodata=0&pixelType=F32&interpolation=+RSP_NearestNeighbor&compression=LZ77&renderingRule={%22rasterFunction%22:%22none%22}&f=image"
+    # aoi_bounding_box = "-131.79583,37.87750,-124.29583,43.89500" # this is very large
+    aoi_bounding_box = "-126.21,41.04,-124.08,41.84"
+    url = (
+        "https://gis.ngdc.noaa.gov/arcgis/rest/services/multibeam_mosaic/ImageServer/exportImage?"
+        f"bbox={aoi_bounding_box}&"
+        "bboxSR=4326&"
+        "size=9000,7221&"
+        "imageSR=4326&"
+        "format=tiff&"
+        "nodata=0&"
+        "pixelType=F32&"
+        "interpolation=RSP_NearestNeighbor&"
+        "compression=LZ77&"
+        'renderingRule={"rasterFunction":"none"}&'
+        "f=image"
+    )
     raw_image_file = "exportImage.tiff"
     smoothed_raster_file = "bathymetry_smoothed.tiff"
     postgis_connection = "host=localhost user=postgres dbname=postgres password=postgres"
