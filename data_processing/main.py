@@ -57,7 +57,7 @@ def generate_contours_and_write_to_postgis(input_file, interval, conn, postgis_c
     output_layer = f"bathymetry_contours_{interval}"
     command = [
         "gdal_contour",
-        "-i", str(interval),  # Interval of contours
+        "-i", str(interval/100),  # Interval of contours in meters
         "-f", "PostgreSQL",  # Output format
         "-a", "depth_m",  # Attribute name for depth
         input_file,
@@ -66,6 +66,28 @@ def generate_contours_and_write_to_postgis(input_file, interval, conn, postgis_c
     ]
     subprocess.run(command, check=True)
     print(f"Contours generated and saved to PostGIS: {output_layer}")
+    
+    
+def simplify_lines(interval, conn, tolerance=0.0000045):
+    """
+    Simplify the vector lines in the PostGIS table to about 0.5m (0.0000045 degrees at the equator). This smooths the lines and makes them lighter to load on the frontend
+    """
+    table_name = f"bathymetry_contours_{interval}"
+    
+    try:
+        sql = f"""
+        UPDATE {table_name}
+        SET wkb_geometry = ST_Simplify(wkb_geometry, {tolerance})
+        WHERE ST_NumPoints(wkb_geometry) > 2;  -- Only apply to geometries with more than 2 points
+        """
+        
+        with conn.cursor() as cursor:
+            cursor.execute(sql)
+            conn.commit()
+            print(f"Lines in table {table_name} simplified to {tolerance} meters.")
+    
+    except Exception as e:
+        print(f"Error while simplifying lines in table {table_name}: {e}")
 
 
 def add_spatial_index(interval, conn):
@@ -88,7 +110,7 @@ def main():
     raw_image_file = "exportImage.tiff"  # TIFF file after download
     smoothed_raster_file = "bathymetry_smoothed.tiff"
     postgis_connection = "host=localhost user=postgres dbname=postgres password=postgres"
-    contour_intervals = [5, 10, 50]
+    contour_intervals = [50, 100, 500] # this is in centimeters so that table names don't have decimals
 
     # Establish a single PostGIS connection
     try:
@@ -116,6 +138,7 @@ def main():
         for interval in contour_intervals:
             drop_table_if_exists(interval, conn)  # Drop the table if it exists
             generate_contours_and_write_to_postgis(smoothed_raster_file, interval, conn, postgis_connection)
+            simplify_lines(interval, conn)
             add_spatial_index(interval, conn)  # Add spatial index
 
     except Exception as e:

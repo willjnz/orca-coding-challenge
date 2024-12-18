@@ -1,3 +1,15 @@
 body {
   margin: 0px;
 }
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.legend-color {
+  width: 20px;
+  height: 10px;
+  margin-right: 10px;
+}
