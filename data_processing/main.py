@@ -2,6 +2,7 @@ import requests
 import subprocess
 import psycopg2
 
+https://ehydroprod.blob.core.usgovcloudapi.net/ehydro-surveys/CENWS/CENWS_DIS_GH_10_WHCX_20240717_CS_E_5_12_614.ZIP
 
 # Download the GeoTiff
 def download_data(url, output_file):
