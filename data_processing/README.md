@@ -10,7 +10,8 @@ gdal_contour -i 10 -f "PostgreSQL" -a "depth_m" "bathymetry_smoothed" PG:"host=l
 ## Setup:
 1. install Python and OSGEO.
 2. add "C:\OSGeo4W64\bin" to PATH so gdal is available in subprocess
-3. 
+3. pip install -r requirements.txt
+4. 
 
 
 
