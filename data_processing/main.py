@@ -2,6 +2,7 @@ import requests
 import subprocess
 import psycopg2
 
+
 # Step 1: Download the data
 def download_data(url, output_file):
     response = requests.get(url)
@@ -11,6 +12,7 @@ def download_data(url, output_file):
         print(f"Data downloaded successfully to {output_file}")
     else:
         print(f"Failed to download data. Status code: {response.status_code}")
+
 
 # Step 2: Smooth the raster using gdalwarp
 def smooth_raster(input_file, output_file):
@@ -24,43 +26,34 @@ def smooth_raster(input_file, output_file):
     ]
     subprocess.run(command, check=True)
     print(f"Raster smoothed: {output_file}")
-    
-def drop_table_if_exists(interval, postgis_connection):
-    table_name = f"bathymetry_contours_{interval}"
-    
-    try:
-        # Parse connection parameters
-        conn_params = {}
-        for param in postgis_connection.split():
-            key, value = param.split("=")
-            conn_params[key] = value
-        
-        # Connect to PostGIS
-        with psycopg2.connect(
-            dbname=conn_params["dbname"],
-            user=conn_params["user"],
-            password=conn_params["password"],
-            host=conn_params["host"],
-            port=conn_params.get("port", 5432)
-        ) as conn:
-            with conn.cursor() as cursor:
-                # Check and drop the table if it exists
-                cursor.execute(f"""
-                DO $$
-                BEGIN
-                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = %s) THEN
-                        EXECUTE 'DROP TABLE ' || quote_ident(%s) || ' CASCADE';
-                    END IF;
-                END;
-                $$ LANGUAGE plpgsql;
-                """, (table_name, table_name))
-                conn.commit()
-                print(f"Table {table_name} dropped if it existed.")
-    except Exception as e:
-        print(f"Error while checking or dropping table {table_name}: {e}")
 
-# Step 3: Generate contours and write them to PostGIS for specified intervals
-def generate_contours_and_write_to_postgis(input_file, interval, postgis_connection):
+
+def drop_table_if_exists(interval, conn):
+    """
+    Drop a table if it exists in the PostGIS database.
+    """
+    table_name = f"bathymetry_contours_{interval}"
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(f"""
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = %s) THEN
+                    EXECUTE 'DROP TABLE ' || quote_ident(%s) || ' CASCADE';
+                END IF;
+            END;
+            $$ LANGUAGE plpgsql;
+            """, (table_name, table_name))
+            conn.commit()
+            print(f"Table {table_name} dropped if it existed.")
+    except Exception as e:
+        print(f"Error while dropping table {table_name}: {e}")
+
+
+def generate_contours_and_write_to_postgis(input_file, interval, conn, postgis_connection):
+    """
+    Generate contours and write them to PostGIS.
+    """
     output_layer = f"bathymetry_contours_{interval}"
     command = [
         "gdal_contour",
@@ -73,32 +66,21 @@ def generate_contours_and_write_to_postgis(input_file, interval, postgis_connect
     ]
     subprocess.run(command, check=True)
     print(f"Contours generated and saved to PostGIS: {output_layer}")
-    
-def add_spatial_index(interval, postgis_connection):
-    # Add spatial index to the generated layer in PostGIS
+
+
+def add_spatial_index(interval, conn):
+    """
+    Add a spatial index to the generated contours layer in PostGIS.
+    """
     output_layer = f"bathymetry_contours_{interval}"
     try:
-        # Extract PostGIS connection parameters
-        conn_params = {}
-        for param in postgis_connection.split():
-            key, value = param.split("=")
-            conn_params[key] = value
-        
-        # Connect to the PostGIS database
-        with psycopg2.connect(
-            dbname=conn_params["dbname"],
-            user=conn_params["user"],
-            password=conn_params["password"],
-            host=conn_params["host"],
-            port=conn_params.get("port", 5432)
-        ) as conn:
-            with conn.cursor() as cursor:
-                # Create spatial index on the geometry column
-                cursor.execute(f"CREATE INDEX ON {output_layer} USING GIST (wkb_geometry);")
-                conn.commit()
-                print(f"Spatial index created on {output_layer}.")
+        with conn.cursor() as cursor:
+            cursor.execute(f"CREATE INDEX ON {output_layer} USING GIST (wkb_geometry);")
+            conn.commit()
+            print(f"Spatial index created on {output_layer}.")
     except Exception as e:
-        print(f"Error while creating spatial index: {e}")
+        print(f"Error while creating spatial index on {output_layer}: {e}")
+
 
 def main():
     # Set up parameters
@@ -107,18 +89,42 @@ def main():
     smoothed_raster_file = "bathymetry_smoothed.tiff"
     postgis_connection = "host=localhost user=postgres dbname=postgres password=postgres"
     contour_intervals = [5, 10, 50]
-    
-    # Download the raw image
-    download_data(url, raw_image_file)
 
-    # Smooth the raster
-    smooth_raster(raw_image_file, smoothed_raster_file)
+    # Establish a single PostGIS connection
+    try:
+        conn_params = {}
+        for param in postgis_connection.split():
+            key, value = param.split("=")
+            conn_params[key] = value
 
-    # Generate contours for intervals 5 and 10 and write to PostGIS
-    for interval in contour_intervals:
-        drop_table_if_exists(interval, postgis_connection) # this is needed because gdal_contour has no overwrite option
-        generate_contours_and_write_to_postgis(smoothed_raster_file, interval, postgis_connection)
-        add_spatial_index(interval, postgis_connection)
+        conn = psycopg2.connect(
+            dbname=conn_params["dbname"],
+            user=conn_params["user"],
+            password=conn_params["password"],
+            host=conn_params["host"],
+            port=conn_params.get("port", 5432)
+        )
+        print("Connected to PostGIS.")
+
+        # Download the raw image
+        download_data(url, raw_image_file)
+
+        # Smooth the raster
+        smooth_raster(raw_image_file, smoothed_raster_file)
+
+        # Generate contours and process for each interval
+        for interval in contour_intervals:
+            drop_table_if_exists(interval, conn)  # Drop the table if it exists
+            generate_contours_and_write_to_postgis(smoothed_raster_file, interval, conn, postgis_connection)
+            add_spatial_index(interval, conn)  # Add spatial index
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+            print("PostGIS connection closed.")
+
 
 if __name__ == "__main__":
     main()
