@@ -18,6 +18,7 @@ More information:
 
 
 ## Frontend Map Application
+Vite.js, React, Typescript, Mapbox GL JS application. Displays vector tiles from tipg.
 
 
 
@@ -25,8 +26,7 @@ More information:
 
 
 
-
-4.  docker build -t orca-data-processing .
+1.  docker build -t orca-data-processing .
 docker run -it --rm orca-data-processing
 
 
