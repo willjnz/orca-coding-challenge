@@ -1,9 +1,11 @@
 requests
 geopandas
-psycopg2
+psycopg2-binary
 shapely
 pyproj
 beautifulsoup4
 rasterio
 numpy
 scipy
+matplotlib
+proj
