@@ -7,8 +7,8 @@ export default function App(): JSX.Element {
   const mapRef = useRef<mapboxgl.Map | null>(null); // Use ref to store the map instance
 
   // these are in centimeters
-  type TInterval = '50' | '100' | '500';
-  const intervals: TInterval[] = ['50', '100', '500'];
+  type TInterval = '50' | '100' | '500' | '100000';
+  const intervals: TInterval[] = ['50', '100', '500', '100000'];
 
   const [selectedInterval, setSelectedInterval] = useState<TInterval>('100');
   const [isMapLoaded, setIsMapLoaded] = useState(false); // To track map loading state
@@ -41,7 +41,7 @@ export default function App(): JSX.Element {
       promoteId: 'id',
       scheme: 'xyz',
       tiles: [
-        `http://localhost:8081/collections/public.bathymetry_contours_${selectedInterval}/tiles/{z}/{x}/{y}?properties=id,depth_m&limit=10000`,
+        `http://localhost:8081/collections/public.bathymetry_contours_${selectedInterval}/tiles/{z}/{x}/{y}?properties=id,depth_m`,
       ],
     });
 
@@ -104,8 +104,8 @@ export default function App(): JSX.Element {
       accessToken: import.meta.env.VITE_MAPBOX_ACCESS_TOKEN,
       container: mapContainer.current as unknown as HTMLElement,
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: [-120.759538, 35.13],
-      zoom: 8,
+      center: [-126.128842, 40.637914],
+      zoom: 7,
     });
 
     // Add zoom and rotation controls

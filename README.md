@@ -12,15 +12,16 @@ The challenge is documented in Instructions.md. Here is my implementation:
 - Move Away from GDAL Shell Commands and Use Python Packages. This allows for more intense analysis, simplifies the pipeline, and ensures better error handling and debugging.
 - Run PostgreSQL in Another Docker Container. This provides the flexibility to scale and configure the database independently. Resource allocation, and backup/recover are made simpler.
 - Leverage PostGIS Functions for Geospatial Processing: I am already simplifying using PostGIS. If we had to do queries or joins then we should definitely use PostGIS.
-- Batch processing with Airflow:  break the processing of large bathymetry datasets into smaller, discrete tasks. For example, you can split the dataset by geographical regions, or depth ranges, and then process each batch separately.
+- Batch processing with Airflow: batch processing is necessary because the bathymetry can only be downloaded for a certain maximum AOI size. We must break the processing of large bathymetry datasets into smaller, discrete tasks. For example, you can split the dataset by geographical regions, or depth ranges, and then process each batch separately.
 - Parallel Execution: whether using Airflow or not, executing multiple tasks in parallel, should significantly speed up processing when dealing with large datasets. For example, you can process different regions or depth layers concurrently.
 - Batch processing with PostgreSQL: Use SQL to handle large data volumes in batches. This can be done by processing data in chunks, running batch jobs that process records in smaller pieces, and updating the status of each batch. This prevents the processing pipeline from overloading the system when working with large datasets.
-- Add Data Validation and Logging. This would be done manually for now I think.
+- Add Data Validation and Logging.
 - Add Automated Testing. Unit and Integration tests.
-- 
-# Setup:
+- Check if the data has already been processed, so that time is not wasted reprocessing (especially when debugging)
 
-  
+
+# Setup:
+Follow these steps in order.
 
 ## PostgreSQL
 
@@ -32,7 +33,7 @@ The challenge is documented in Instructions.md. Here is my implementation:
 
 ## Pipeline
 
-1. Install Python and OSGEO.
+1. Install Python and OSGEO4W.
 
 2. Add "C:\OSGeo4W64\bin" to PATH so gdal is available in subprocess
 
@@ -46,13 +47,13 @@ The challenge is documented in Instructions.md. Here is my implementation:
 
 #### More information:
 
-1. To source the data manually, you can go here: https://www.ncei.noaa.gov/maps/grid-extract/
+To source the data manually, or define your AOI, you can go here: https://www.ncei.noaa.gov/maps/grid-extract/
 
-2. The data can be automatically downloaded from here. The bounding box can be updated for the desired AOI.
->https://gis.ngdc.noaa.gov/arcgis/rest/services/multibeam_mosaic/ImageServer/exportImage?f=image&bbox=-13515556.908056526%2C4099961.5273054326%2C-13352898.91186575%2C4265371.256514474&bboxSR=102100&imageSR=102100&size=532%2C541&format=jpgpng&mosaicRule=%7B%22ascending%22%3Atrue%2C%22mosaicMethod%22%3A%22esriMosaicNorthwest%22%2C%22mosaicOperation%22%3A%22MT_MEAN%22%7D&renderingRule=%7B%22rasterFunction%22%3A%22MultidirectionalHillshadeHaxby_8000-0%22%7D
-3. The bathymetry data is a GeoTiff, in 4326, has only one band, and values are in meters. cell size is about 90m.
-4. Smoothing is done using gdal_warp to prevent contour lines from being jagged. Smoothing is a balance between contour lines looking nice, and losing too much data precision. Although some artifacts in the data would be nice to lose e.g. where it spikes from -40m to -10000.
-5. contours are created with gdal_contour. This is an awesome tool for this purpose because an interval can be specified, and it can write directly to PostGIS.
+1. The data can be automatically downloaded from here. The bounding box can be updated for the desired AOI. This is almost the largest AOI possible in one batch.
+>https://gis.ngdc.noaa.gov/arcgis/rest/services/multibeam_mosaic/ImageServer/exportImage?bbox=-131.79583,37.87750,-124.29583,43.89500&bboxSR=4326&size=9000,7221&imageSR=4326&format=tiff&nodata=0&pixelType=F32&interpolation=+RSP_NearestNeighbor&compression=LZ77&renderingRule={%22rasterFunction%22:%22none%22}&f=image
+2. The bathymetry data is a GeoTiff, in 4326, has only one band, and values are in meters. cell size is about 90m.
+3. Smoothing is done using gdal_warp to prevent contour lines from being jagged. Smoothing is a balance between contour lines looking nice, and losing too much data precision. Although some artifacts in the data would be nice to lose e.g. where it spikes from -40m to -10000.
+4. contours are created with gdal_contour. This is an awesome tool for this purpose because an interval can be specified, and it can write directly to PostGIS.
 
 
 ## Tile Server
