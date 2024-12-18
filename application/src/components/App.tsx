@@ -85,8 +85,6 @@ export default function App(): JSX.Element {
           'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
           'text-size': 12,
           'text-anchor': 'center',
-          'text-allow-overlap': true,
-          'text-ignore-placement': false,
           'symbol-placement': 'line',
           'text-offset': [0, 0.5],
         },
