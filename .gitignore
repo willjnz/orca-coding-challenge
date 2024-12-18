@@ -1,3 +1,8 @@
 application/.env
 application/dist/
 application/node_modules/
+
+bathymetry_smoothed.tiff
+exportImage.tiff
+data_processing/bathymetry_smoothed.tiff
+data_processing/exportImage.tiff
