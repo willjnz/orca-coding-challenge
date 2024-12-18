@@ -1,4 +1,3 @@
-import os
 import requests
 import subprocess
 
@@ -40,20 +39,15 @@ def generate_contours_and_write_to_postgis(input_file, interval, postgis_connect
     subprocess.run(command, check=True)
     print(f"Contours generated and saved to PostGIS: {output_layer}")
 
-# Main function to run the full process
 def main():
     # Set up parameters
     url = "https://gis.ngdc.noaa.gov/arcgis/rest/services/multibeam_mosaic/ImageServer/exportImage?bbox=-121.11583,34.97083,-120.59250,35.24500&bboxSR=4326&size=628,329&imageSR=4326&format=tiff&nodata=0&pixelType=F32&interpolation=+RSP_NearestNeighbor&compression=LZ77&renderingRule={%22rasterFunction%22:%22none%22}&f=image"
     raw_image_file = "exportImage.tiff"  # TIFF file after download
-    # geotiff_file = "bathymetry.tiff"  # GeoTIFF file after conversion
     smoothed_raster_file = "bathymetry_smoothed.tiff"
     postgis_connection = "host=localhost user=postgres dbname=postgres password=postgres"
     
     # Download the raw image
     download_data(url, raw_image_file)
-    
-    # # Convert the raw image to GeoTIFF
-    # convert_to_geotiff(raw_image_file, geotiff_file)
 
     # Smooth the raster
     smooth_raster(raw_image_file, smoothed_raster_file)
