@@ -1,4 +1,1 @@
 psycopg2
-gdal
-mdal
-

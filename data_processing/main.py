@@ -18,7 +18,7 @@ def download_and_unzip(url, output_dir):
         os.makedirs(output_dir)
 
     # Download the ZIP file
-    print(f"Downloading file from {url}...")
+    print(f"Downloading file from {url}")
     response = requests.get(url)
     
     # Check if the download was successful
@@ -31,7 +31,7 @@ def download_and_unzip(url, output_dir):
         print(f"Downloaded successfully to {zip_filename}")
         
         # Unzip the file
-        print(f"Unzipping file to {output_dir}...")
+        print(f"Unzipping file to {output_dir}")
         with zipfile.ZipFile(zip_filename, 'r') as zip_ref:
             zip_ref.extractall(output_dir)
         print(f"Unzipped successfully to {output_dir}")
@@ -52,16 +52,14 @@ def convert_gdb_layer_to_geoparquet(input_gdb, output_file, layer_name):
         output_file (str): Path to the output GeoParquet file.
         layer_name (str): The name of the layer to convert.
     """
-    # Build the ogr2ogr command for a specific layer
     command = [
-        "ogr2ogr",                      # ogr2ogr tool
-        "-f", "Parquet",             # Output format (GeoParquet)
-        output_file,                    # Output GeoParquet file path
-        input_gdb,                      # Input GDB file path
-        layer_name                      # Specify the layer to convert
+        "ogr2ogr",
+        "-f", "Parquet",
+        output_file,
+        input_gdb,
+        layer_name
     ]
     
-    # Run the command
     try:
         subprocess.run(command, check=True)
         print(f"Layer '{layer_name}' successfully converted to {output_file}")
@@ -92,19 +90,16 @@ def interpolate_raster_from_survey_points(input_file, output_raster, layer_name=
         layer_name (str): Name of the layer to use for interpolation (default is "SurveyPoint").
         zfield (str): Name of the field in the vector data to use for Z-values (default is "Z_depth").
     """
-    # Build the gdal_grid command
     command = [
-        "gdal_grid",                             # GDAL grid command
-        "-l", layer_name,                        # Layer name (SurveyPoint)
-        "-zfield", zfield,                       # Field to use for Z-values (e.g., "Z_depth")
-        "-a", "invdistnn:power=2.0:smoothing=200.0:radius=180.0:max_points=8:min_points=0:nodata=0.0",  # Inverse distance algorithm
-        "-ot", "Float32",                        # Output data type (32-bit float)
-        "-of", "GTiff",                          # Output format (GeoTIFF)
-        input_file,                              # Input vector file (GeoParquet or GDB)
-        output_raster                            # Output raster file path
+        "gdal_grid",
+        "-l", layer_name,
+        "-zfield", zfield,
+        "-a", "invdistnn:power=2.0:smoothing=200.0:radius=180.0:max_points=8:min_points=0:nodata=0.0",  # Inverse distance algorithm with smoothing
+        "-ot", "Float32",
+        "-of", "GTiff",
+        input_file,
+        output_raster 
     ]
-    
-    # Run the command
     try:
         subprocess.run(command, check=True)
         print(f"Raster grid successfully interpolated and saved to {output_raster}")
@@ -137,19 +132,17 @@ def clip_raster_to_parquet(input_raster, output_raster, cutline_file):
         output_raster (str): Path to the output clipped raster file (e.g., bathymetry_clipped.tif).
         cutline_file (str): Path to the GeoParquet file (e.g., SurveyJob.parquet).
     """
-    # Build the gdalwarp command for clipping the raster with the GeoParquet cutline
     command = [
-        "gdalwarp",                             # gdalwarp command
-        "-overwrite",                           # Overwrite the output if it exists
-        "-t_srs", "EPSG:4326",                  # Target spatial reference system (EPSG:4326)
-        "-of", "GTiff",                         # Output format (GeoTIFF)
-        "-cutline", cutline_file,               # Input GeoParquet file to use for clipping
-        "-crop_to_cutline",                     # Crop the raster to the cutline
-        input_raster,                           # Input raster file (bathymetry_smoothed.tif)
-        output_raster                           # Output clipped raster file (bathymetry_clipped.tif)
+        "gdalwarp",
+        "-overwrite",
+        "-t_srs", "EPSG:4326",
+        "-of", "GTiff",
+        "-cutline", cutline_file, 
+        "-crop_to_cutline",
+        input_raster,
+        output_raster
     ]
     
-    # Run the command
     try:
         subprocess.run(command, check=True)
         print(f"Raster successfully clipped and saved to {output_raster}")
@@ -184,7 +177,7 @@ def generate_contours_and_write_to_postgis(input_file, interval, table_name, pos
     """
     Generate contours from a raster and write them to PostGIS.
     """
-    print("Starting to generate contours.")
+    print(f"Starting to generate contours {table_name}.")
     command = [
         "gdal_contour",
         "-i", str(interval / 100),  # Interval of contours in meters
@@ -201,47 +194,51 @@ def generate_contours_and_write_to_postgis(input_file, interval, table_name, pos
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while running gdal_contour: {e}")
 
+def simplify_and_smooth_lines_in_postgis(conn, table_name, tolerance=0.000000005, smoothing_iterations=4):
+    """
+    Simplify and smooth the vector lines in the PostGIS table using ST_SimplifyVW and ST_ChaikinSmoothing.
 
-# simplify the vector contours so they are smoother, and lighter to load on the frontend
-def simplify_lines(interval, conn, tolerance=0.0000045):
+    Args:
+        conn (psycopg2.Connection): Connection to the PostGIS database.
+        table_name (str): Name of the PostGIS table containing geometries to process.
+        tolerance (float): Tolerance for simplification using ST_SimplifyVW (e.g., 0.000000005 degrees).
+        smoothing_iterations (int): Number of iterations for smoothing using ST_ChaikinSmoothing (default is 4).
     """
-    Simplify the vector lines in the PostGIS table to about 0.5m (0.0000045 degrees at the equator).
-    """
-    # Visvalingam-Whyatt is better simplification for Orca's use case.
-    # simplify using https://postgis.net/docs/ST_SimplifyVW.html
-    print("Starting to simplify contours.")
-    table_name = f"bathymetry_contours_{interval}"
-    
+    print(f"Starting to simplify and smooth contours in table {table_name}.")
+
     try:
         sql = f"""
         UPDATE {table_name}
-        SET wkb_geometry = ST_Simplify(wkb_geometry, {tolerance})
+        SET wkb_geometry = ST_ChaikinSmoothing(
+            ST_SimplifyVW(wkb_geometry, {tolerance}),
+            {smoothing_iterations}
+        )
         WHERE ST_NumPoints(wkb_geometry) > 2;  -- Only apply to geometries with more than 2 points
         """
         
         with conn.cursor() as cursor:
             cursor.execute(sql)
             conn.commit()
-            print(f"Lines in table {table_name} simplified to {tolerance} meters.")
+            print(f"Lines in table {table_name} simplified with tolerance {tolerance} "
+                  f"and smoothed using {smoothing_iterations} iterations.")
     
     except Exception as e:
-        print(f"Error while simplifying lines in table {table_name}: {e}")
+        print(f"Error while simplifying and smoothing lines in table {table_name}: {e}")
 
 
-# add a spatial index to a table so that they can be queried faster
-def add_spatial_index(interval, conn):
+# add a spatial index to a table so that it can be queried faster
+def add_spatial_index(conn, table_name):
     """
     Add a spatial index to the generated contours layer in PostGIS.
     """
-    print("Starting to add spatial index.")
-    output_layer = f"bathymetry_contours_{interval}"
+    print(f"Starting to add spatial index {table_name}.")
     try:
         with conn.cursor() as cursor:
-            cursor.execute(f"CREATE INDEX ON {output_layer} USING GIST (wkb_geometry);")
+            cursor.execute(f"CREATE INDEX ON {table_name} USING GIST (wkb_geometry);")
             conn.commit()
-            print(f"Spatial index created on {output_layer}.")
+            print(f"Spatial index created on {table_name}.")
     except Exception as e:
-        print(f"Error while creating spatial index on {output_layer}: {e}")
+        print(f"Error while creating spatial index on {table_name}: {e}")
 
 
 # the main flow of the pipeline
@@ -294,22 +291,11 @@ def main():
             table_name = f"bathymetry_contours_{interval}"
             drop_table_if_exists(table_name, conn)
             generate_contours_and_write_to_postgis(clipped_raster_file, interval, table_name, postgis_connection)
-            # simplify_lines(table_name, conn)
-            # smooth_lines(table_name, conn) # smooth using https://postgis.net/docs/ST_ChaikinSmoothing.html
-            # add_spatial_index(interval, conn)  # Add spatial index
-        
+            simplify_and_smooth_lines_in_postgis(conn, table_name)
+            add_spatial_index(conn, table_name)
         
         # TODO: also write USACE's contours to postgis for a visual comparison
         # write_usace_contours_to_postgis() # "ElevationContour_ALL.parquet"
-        
-        
-
-        # # Generate contours and process for each interval
-        # for interval in contour_intervals:
-        #     drop_table_if_exists(interval, conn)  # Drop the table if it exists
-        #     generate_contours_and_write_to_postgis(smoothed_raster_file, interval, conn, postgis_connection)
-        #     simplify_lines(interval, conn)
-        #     add_spatial_index(interval, conn)  # Add spatial index
 
         print("Pipeline ran successfully.")
     except Exception as e:
