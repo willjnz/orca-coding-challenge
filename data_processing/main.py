@@ -4,6 +4,7 @@ import os
 import subprocess
 import psycopg2
 
+
 def download_and_unzip(url, output_dir):
     """
     Downloads a ZIP file from the provided URL and unzips it into the specified directory.
@@ -295,7 +296,13 @@ def main():
     clipped_raster_file = "C:/Users/William Jones/Downloads/bathymetry_clipped.tif"
     cutline_file = "C:/Users/William Jones/Downloads/SurveyJob.parquet"
     clip_raster_to_parquet(smoothed_raster_file, clipped_raster_file, cutline_file)
+    
+    # ogr2ogr -f "Parquet" -simplify 0.000005 "C:/Users/William Jones/Downloads/contours_100cm_simplified.parquet" "C:/Users/William Jones/Downloads/contours_100cm.parquet"
 
+    # Visvalingam-Whyatt is better simplification for Orca's use case.
+    # simplify using https://postgis.net/docs/ST_SimplifyVW.html
+    
+    # then smooth using https://postgis.net/docs/ST_ChaikinSmoothing.html
 
     # Generate contours and process for each interval
     for interval in contour_intervals:
