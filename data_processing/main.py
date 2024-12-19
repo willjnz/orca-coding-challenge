@@ -157,40 +157,11 @@ def clip_raster_to_parquet(input_raster, output_raster, cutline_file):
         print(f"Error occurred while running gdalwarp: {e}")
 
 
-def create_contours(input_raster, output_contours, contour_interval):
-    """
-    Creates contours from a raster file and saves them to a GeoParquet file.
-
-    Args:
-        input_raster (str): Path to the input raster file (e.g., bathymetry_clipped.tif).
-        output_contours (str): Path to the output GeoParquet file for contours (e.g., contours_10m.parquet).
-        contour_interval (float): Interval for the contours.
-    """
-    # Build the gdal_contour command to create contours from the raster
-    command = [
-        "gdal_contour",                       # gdal_contour command
-        "-b", "1",                            # Band number (1, assuming single-band raster)
-        "-a", "depth_m",                      # Attribute name for contour values
-        "-i", str(contour_interval / 100),          # Contour interval (e.g., 10.0 meters). interval / 100 because original is in cm
-        "-f", "Parquet",                      # Output format (GeoParquet)
-        input_raster,                         # Input raster file
-        output_contours                       # Output GeoParquet file for contours
-    ]
-    
-    # Run the command
-    try:
-        subprocess.run(command, check=True)
-        print(f"Contours successfully created and saved to {output_contours}")
-    except subprocess.CalledProcessError as e:
-        print(f"Error occurred while running gdal_contour: {e}")
-
-
 # Clean up old table
-def drop_table_if_exists(interval, conn):
+def drop_table_if_exists(table_name, conn):
     """
     Drop a table if it exists in the PostGIS database.
     """
-    table_name = f"bathymetry_contours_{interval}"
     try:
         with conn.cursor() as cursor:
             cursor.execute(f"""
@@ -209,23 +180,26 @@ def drop_table_if_exists(interval, conn):
 
 
 # make vector contours at a given interval (meters), and write them to a postgis table
-def generate_contours_and_write_to_postgis(input_file, interval, conn, postgis_connection):
+def generate_contours_and_write_to_postgis(input_file, interval, table_name, postgis_connection):
     """
-    Generate contours and write them to PostGIS.
+    Generate contours from a raster and write them to PostGIS.
     """
-    print("Starting to smooth generate contours.")
-    output_layer = f"bathymetry_contours_{interval}"
+    print("Starting to generate contours.")
     command = [
         "gdal_contour",
-        "-i", str(interval/100),  # Interval of contours in meters
-        "-f", "PostgreSQL",  # Output format
-        "-a", "depth_m",  # Attribute name for depth
+        "-i", str(interval / 100),  # Interval of contours in meters
+        "-b", "1",
+        "-f", "PostgreSQL",
+        "-a", "depth_m",  # Attribute name in table
         input_file,
         f"PG:{postgis_connection}",
-        "-nln", output_layer
-    ]
-    subprocess.run(command, check=True)
-    print(f"Contours generated and saved to PostGIS: {output_layer}")
+        "-nln", table_name
+    ]    
+    try:
+        subprocess.run(command, check=True)
+        print(f"Contours generated and saved to PostGIS: {table_name}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred while running gdal_contour: {e}")
 
 
 # simplify the vector contours so they are smoother, and lighter to load on the frontend
@@ -233,6 +207,8 @@ def simplify_lines(interval, conn, tolerance=0.0000045):
     """
     Simplify the vector lines in the PostGIS table to about 0.5m (0.0000045 degrees at the equator).
     """
+    # Visvalingam-Whyatt is better simplification for Orca's use case.
+    # simplify using https://postgis.net/docs/ST_SimplifyVW.html
     print("Starting to simplify contours.")
     table_name = f"bathymetry_contours_{interval}"
     
@@ -279,47 +255,6 @@ def main():
 
     output_dir = "C:/Users/William Jones/Downloads"
 
-    download_and_unzip(url, output_dir)
-    
-    input_gdb = os.path.join(output_dir, survey_name + ".gdb")
-    layers = ["SurveyJob", "SurveyPoint"]  # Layers to convert
-
-    convert_gdb_to_geoparquet(input_gdb, output_dir, layers)
-    
-    survey_point_file = "C:/Users/William Jones/Downloads/SurveyPoint.parquet"
-    interpolated_raster_file = "C:/Users/William Jones/Downloads/bathymetry.tif"
-    interpolate_raster_from_survey_points(survey_point_file, interpolated_raster_file)
-    
-    smoothed_raster_file = "C:/Users/William Jones/Downloads/bathymetry_smoothed.tif"
-    smooth_raster_and_reproject_to_4326(interpolated_raster_file, smoothed_raster_file)
-
-    clipped_raster_file = "C:/Users/William Jones/Downloads/bathymetry_clipped.tif"
-    cutline_file = "C:/Users/William Jones/Downloads/SurveyJob.parquet"
-    clip_raster_to_parquet(smoothed_raster_file, clipped_raster_file, cutline_file)
-    
-    # ogr2ogr -f "Parquet" -simplify 0.000005 "C:/Users/William Jones/Downloads/contours_100cm_simplified.parquet" "C:/Users/William Jones/Downloads/contours_100cm.parquet"
-
-    # Visvalingam-Whyatt is better simplification for Orca's use case.
-    # simplify using https://postgis.net/docs/ST_SimplifyVW.html
-    
-    # then smooth using https://postgis.net/docs/ST_ChaikinSmoothing.html
-
-    # Generate contours and process for each interval
-    for interval in contour_intervals:
-        output_contours = f"C:/Users/William Jones/Downloads/contours_{interval}cm.parquet"
-        create_contours(clipped_raster_file, output_contours, interval)
-        # generate_contours_and_write_to_postgis(smoothed_raster_file, interval, conn, postgis_connection)
-        # simplify_lines(interval, conn)
-        # drop_table_if_exists(interval, conn)  # Drop the table if it exists
-        # add_spatial_index(interval, conn)  # Add spatial index
-    
-    
-    # TODO: also write USACE's contours to postgis for a visual comparison
-    # def write_usace_contours_to_postgis:
-    
-    
-    
-    """
     # Establish a single PostGIS connection
     try:
         conn_params = {}
@@ -335,13 +270,46 @@ def main():
             port=conn_params.get("port", 5432)
         )
         print("Connected to PostGIS.")
+        
+        download_and_unzip(url, output_dir)
+    
+        input_gdb = os.path.join(output_dir, survey_name + ".gdb")
+        layers = ["SurveyJob", "SurveyPoint", "ElevationContour_ALL"]
+
+        convert_gdb_to_geoparquet(input_gdb, output_dir, layers)
+        
+        survey_point_file = "C:/Users/William Jones/Downloads/SurveyPoint.parquet"
+        interpolated_raster_file = "C:/Users/William Jones/Downloads/bathymetry.tif"
+        interpolate_raster_from_survey_points(survey_point_file, interpolated_raster_file)
+        
+        smoothed_raster_file = "C:/Users/William Jones/Downloads/bathymetry_smoothed.tif"
+        smooth_raster_and_reproject_to_4326(interpolated_raster_file, smoothed_raster_file)
+
+        clipped_raster_file = "C:/Users/William Jones/Downloads/bathymetry_clipped.tif"
+        cutline_file = "C:/Users/William Jones/Downloads/SurveyJob.parquet"
+        clip_raster_to_parquet(smoothed_raster_file, clipped_raster_file, cutline_file)
 
         # Generate contours and process for each interval
         for interval in contour_intervals:
-            drop_table_if_exists(interval, conn)  # Drop the table if it exists
-            generate_contours_and_write_to_postgis(smoothed_raster_file, interval, conn, postgis_connection)
-            simplify_lines(interval, conn)
-            add_spatial_index(interval, conn)  # Add spatial index
+            table_name = f"bathymetry_contours_{interval}"
+            drop_table_if_exists(table_name, conn)
+            generate_contours_and_write_to_postgis(clipped_raster_file, interval, table_name, postgis_connection)
+            # simplify_lines(table_name, conn)
+            # smooth_lines(table_name, conn) # smooth using https://postgis.net/docs/ST_ChaikinSmoothing.html
+            # add_spatial_index(interval, conn)  # Add spatial index
+        
+        
+        # TODO: also write USACE's contours to postgis for a visual comparison
+        # write_usace_contours_to_postgis() # "ElevationContour_ALL.parquet"
+        
+        
+
+        # # Generate contours and process for each interval
+        # for interval in contour_intervals:
+        #     drop_table_if_exists(interval, conn)  # Drop the table if it exists
+        #     generate_contours_and_write_to_postgis(smoothed_raster_file, interval, conn, postgis_connection)
+        #     simplify_lines(interval, conn)
+        #     add_spatial_index(interval, conn)  # Add spatial index
 
         print("Pipeline ran successfully.")
     except Exception as e:
@@ -350,7 +318,6 @@ def main():
         if 'conn' in locals() and conn:
             conn.close()
             print("PostGIS connection closed.")
-    """
 
 
 if __name__ == "__main__":
