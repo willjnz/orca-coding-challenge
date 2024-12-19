@@ -42,33 +42,43 @@ def download_and_unzip(url, output_dir):
         print(f"Failed to download file. Status code: {response.status_code}")
 
 
-def convert_gdb_to_geoparquet(input_gdb, output_file, layers):
+def convert_gdb_layer_to_geoparquet(input_gdb, output_file, layer_name):
     """
-    Convert specific layers from a GDB file to GeoParquet format.
-
+    Convert a specific layer from a GDB file to GeoParquet format.
+    
     Args:
         input_gdb (str): Path to the input GDB file.
         output_file (str): Path to the output GeoParquet file.
-        layers (list): List of layer names to convert (e.g., ['SurveyJob', 'SurveyPoint']).
+        layer_name (str): The name of the layer to convert.
     """
-    # Build the ogr2ogr command
+    # Build the ogr2ogr command for a specific layer
     command = [
         "ogr2ogr",                      # ogr2ogr tool
-        "-f", "GeoParquet",             # Output format (GeoParquet)
+        "-f", "Parquet",             # Output format (GeoParquet)
         output_file,                    # Output GeoParquet file path
         input_gdb,                      # Input GDB file path
+        layer_name                      # Specify the layer to convert
     ]
-    
-    # Add layers to convert
-    for layer in layers:
-        command.extend(["-l", layer])
     
     # Run the command
     try:
         subprocess.run(command, check=True)
-        print(f"File successfully converted to {output_file}")
+        print(f"Layer '{layer_name}' successfully converted to {output_file}")
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while running ogr2ogr: {e}")
+
+def convert_gdb_to_geoparquet(input_gdb, output_dir, layers):
+    """
+    Convert specific layers from a GDB file to GeoParquet format.
+    
+    Args:
+        input_gdb (str): Path to the input GDB file.
+        output_dir (str): Path to the output directory.
+        layers (list): List of layer names to convert (e.g., ['SurveyJob', 'SurveyPoint']).
+    """
+    for layer in layers:
+        output_file = f"{output_dir}/{layer}.parquet"
+        convert_gdb_layer_to_geoparquet(input_gdb, output_file, layer)
 
 
 # Smooth the raster using gdalwarp
@@ -187,10 +197,9 @@ def main():
     download_and_unzip(url, output_dir)
     
     input_gdb = os.path.join(output_dir, survey_name + ".gdb")
-    output_geoparquet = os.path.join(output_dir, survey_name + ".parquet")
     layers = ["SurveyJob", "SurveyPoint"]  # Layers to convert
 
-    convert_gdb_to_geoparquet(input_gdb, output_geoparquet, layers)
+    convert_gdb_to_geoparquet(input_gdb, output_dir, layers)
     
     """
     # Establish a single PostGIS connection
