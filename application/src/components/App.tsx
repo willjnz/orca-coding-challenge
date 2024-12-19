@@ -7,18 +7,18 @@ export default function App(): JSX.Element {
   const mapRef = useRef<mapboxgl.Map | null>(null); // Use ref to store the map instance
 
   // these are in centimeters
-  type TInterval = '50' | '100' | '500' | '100000';
-  const intervals: TInterval[] = ['50', '100', '500', '100000'];
+  type TInterval = '10' | '50' | '100' | '500';
+  const intervals: TInterval[] = ['10', '50', '100', '500'];
 
-  const [selectedInterval, setSelectedInterval] = useState<TInterval>('100000');
+  const [selectedInterval, setSelectedInterval] = useState<TInterval>('50');
   const [isMapLoaded, setIsMapLoaded] = useState(false); // To track map loading state
 
   const legendData = [
-    { depth: -7000, color: '#4B0082' },
-    { depth: -4000, color: '#191970' },
-    { depth: -1000, color: '#00008B' },
-    { depth: -200, color: '#4682B4' },
-    { depth: 0, color: '#A0D3FF' },
+    { depth: 0, color: '#6fb7db ' },
+    { depth: 7.5, color: '#4f8fb3 ' },
+    { depth: 15, color: '#2f688b ' },
+    { depth: 22.5, color: '#1f4063 ' },
+    { depth: 30, color: '#00204d ' },
   ];
 
   // Function to update the vector tile layer based on the selected interval
@@ -57,16 +57,16 @@ export default function App(): JSX.Element {
             'interpolate',
             ['linear'],
             ['to-number', ['get', 'depth_m']],
-            -7000,
-            '#4B0082',
-            -4000,
-            '#191970',
-            -1000,
-            '#00008B',
-            -200,
-            '#4682B4',
-            -0,
-            '#A0D3FF',
+            0,
+            '#6fb7db',
+            7.5,
+            '#4f8fb3',
+            15,
+            '#2f688b',
+            22.5,
+            '#1f4063',
+            30,
+            '#00204d',
           ],
         },
       },
@@ -104,8 +104,8 @@ export default function App(): JSX.Element {
       accessToken: import.meta.env.VITE_MAPBOX_ACCESS_TOKEN,
       container: mapContainer.current as unknown as HTMLElement,
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: [-126.128842, 40.637914],
-      zoom: 7,
+      center: [-124.10943, 46.90571],
+      zoom: 12,
     });
 
     // Add zoom and rotation controls
