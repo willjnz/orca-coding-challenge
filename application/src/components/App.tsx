@@ -32,10 +32,53 @@ export default function App(): JSX.Element {
       map.removeLayer('contour-labels');
       map.removeSource('contours');
     }
+    if (map.getSource('contours-comparison')) {
+      map.removeLayer('contours-comparison');
+      map.removeSource('contours-comparison');
+    }
+
+    // add comparison usace_contours_100
+    if (selectedInterval === '100') {
+      // Add the vector tile source and layer for bathymetry_contours_{selectedInterval}
+      map.addSource('contours-comparison', {
+        type: 'vector',
+        promoteId: 'id',
+        scheme: 'xyz',
+        tiles: [
+          `http://localhost:8081/collections/public.usace_contours_100/tiles/{z}/{x}/{y}?properties=contourelevation`,
+        ],
+      });
+
+      map.addLayer(
+        {
+          id: 'contours-comparison',
+          source: 'contours-comparison',
+          'source-layer': 'default',
+          type: 'line',
+          paint: {
+            'line-width': 2,
+            'line-color': [
+              'interpolate',
+              ['linear'],
+              ['to-number', ['get', 'contourelevation']],
+              0,
+              '#f8d7d0',
+              7.5,
+              '#f1a0a0',
+              15,
+              '#e57373',
+              22.5,
+              '#d32f2f',
+              30,
+              '#b71c1c',
+            ],
+          },
+        },
+        'building-number-label' // Add this layer under the map labels
+      );
+    }
 
     // Add the vector tile source and layer for bathymetry_contours_{selectedInterval}
-
-    // Add a vector tile layer from Tipg
     map.addSource('contours', {
       type: 'vector',
       promoteId: 'id',
@@ -104,7 +147,7 @@ export default function App(): JSX.Element {
       accessToken: import.meta.env.VITE_MAPBOX_ACCESS_TOKEN,
       container: mapContainer.current as unknown as HTMLElement,
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: [-124.10943, 46.90571],
+      center: [-74.75, 40.25],
       zoom: 12,
     });
 
@@ -145,6 +188,7 @@ export default function App(): JSX.Element {
           top: '10px',
           left: '50px',
           padding: '8px',
+          maxWidth: '200px',
         }}
         className="mapboxgl-ctrl mapboxgl-ctrl-group"
       >
@@ -174,6 +218,10 @@ export default function App(): JSX.Element {
               </div>
             ))}
           </div>
+          <p>
+            Blue lines are created by my pipeline. When 1m is activated, USACE's
+            contours show as red lines for comparison.
+          </p>
         </div>
       </div>
     </div>
