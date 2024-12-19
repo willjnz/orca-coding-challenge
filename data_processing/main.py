@@ -194,15 +194,15 @@ def generate_contours_and_write_to_postgis(input_file, interval, table_name, pos
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while running gdal_contour: {e}")
 
-def simplify_and_smooth_lines_in_postgis(conn, table_name, tolerance=0.000000005, smoothing_iterations=4):
+def simplify_and_smooth_lines_in_postgis(conn, table_name, tolerance=0.000000007, smoothing_iterations=6):
     """
     Simplify and smooth the vector lines in the PostGIS table using ST_SimplifyVW and ST_ChaikinSmoothing.
 
     Args:
         conn (psycopg2.Connection): Connection to the PostGIS database.
         table_name (str): Name of the PostGIS table containing geometries to process.
-        tolerance (float): Tolerance for simplification using ST_SimplifyVW (e.g., 0.000000005 degrees).
-        smoothing_iterations (int): Number of iterations for smoothing using ST_ChaikinSmoothing (default is 4).
+        tolerance (float): Tolerance for simplification using ST_SimplifyVW (e.g., 0.000000007 degrees).
+        smoothing_iterations (int): Number of iterations for smoothing using ST_ChaikinSmoothing (default is 6).
     """
     print(f"Starting to simplify and smooth contours in table {table_name}.")
 
@@ -241,10 +241,33 @@ def add_spatial_index(conn, table_name):
         print(f"Error while creating spatial index on {table_name}: {e}")
 
 
-# the main flow of the pipeline
+def write_usace_contours_to_postgis(parquet_file, table_name, postgis_connection):
+    """
+    Write contours from a Parquet file to a PostGIS table using ogr2ogr.
+    
+    Args:
+        parquet_file (str): Path to the Parquet file containing the contours.
+        table_name (str): Name of the target PostGIS table.
+        db_url (str): URL to the PostGIS database (e.g., "PG:host=localhost user=username dbname=your_database password=password").
+    """
+    try:
+        command = [
+            "ogr2ogr",
+            "-f", "PostGIS",
+            f"PG:{postgis_connection}",
+            parquet_file,
+            "-nln", table_name,
+            "-overwrite"
+        ]
+        subprocess.run(command, check=True)
+        print(f"Contours successfully written to the PostGIS table '{table_name}'.")
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred while writing contours to PostGIS: {e}")
+
+
 def main():
     print("Starting pipeline.")
-    # Set up parameters
     url = "https://ehydroprod.blob.core.usgovcloudapi.net/ehydro-surveys/CENWS/CENWS_DIS_GH_10_WHCX_20240717_CS_E_5_12_614.ZIP"
     survey_name = "GH_10_WHCX_20240717_CS_E_5_12_614"
     postgis_connection = "host=localhost user=postgres dbname=postgres password=postgres"
@@ -293,9 +316,11 @@ def main():
             generate_contours_and_write_to_postgis(clipped_raster_file, interval, table_name, postgis_connection)
             simplify_and_smooth_lines_in_postgis(conn, table_name)
             add_spatial_index(conn, table_name)
-        
-        # TODO: also write USACE's contours to postgis for a visual comparison
-        # write_usace_contours_to_postgis() # "ElevationContour_ALL.parquet"
+            
+        # write USACE's contours to postgis for a visual comparison
+        usace_contours = "C:/Users/William Jones/Downloads/ElevationContour_ALL.parquet"
+        write_usace_contours_to_postgis(usace_contours, "usace_contours_100", postgis_connection)
+
 
         print("Pipeline ran successfully.")
     except Exception as e:
