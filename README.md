@@ -40,6 +40,7 @@ The challenge is documented in Instructions.md. Here is my implementation:
 - Check if the data has already been processed, so that time is not wasted reprocessing (especially when debugging)
 
 
+
 # Setup:
 Follow these steps in order.
 

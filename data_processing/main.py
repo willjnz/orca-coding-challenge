@@ -3,6 +3,53 @@ import zipfile
 import os
 import subprocess
 import psycopg2
+import pandas as pd
+import geopandas as gpd
+
+
+def get_surveys(bbox, start_date):
+    url = "https://services7.arcgis.com/n1YM8pTrFmm7L4hs/arcgis/rest/services/eHydro_Survey_Data/FeatureServer/0/query"
+    
+    where_clause = f"SurveyDateStart >= '{start_date}'"
+    
+    params = {
+        'where': where_clause,
+        'geometry': f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}",
+        'geometryType': 'esriGeometryEnvelope',
+        'spatialRel': 'esriSpatialRelIntersects',
+        'distance': 0.0,
+        'units': 'esriSRUnit_Meter',
+        'returnGeodetic': 'false',
+        'outFields': 'sourcedatalocation',
+        'returnGeometry': 'false',
+        'returnCentroid': 'false',
+        'returnEnvelope': 'false',
+        'featureEncoding': 'esriDefault',
+        'multipatchOption': 'xyFootprint',
+        'applyVCSProjection': 'false',
+        'returnIdsOnly': 'false',
+        'returnUniqueIdsOnly': 'false',
+        'returnCountOnly': 'false',
+        'returnExtentOnly': 'false',
+        'returnQueryGeometry': 'false',
+        'returnDistinctValues': 'false',
+        'cacheHint': 'false',
+        'returnZ': 'false',
+        'returnM': 'false',
+        'returnTrueCurves': 'false',
+        'returnExceededLimitFeatures': 'true',
+        'sqlFormat': 'none',
+        'f': 'pjson'
+    }
+
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        return response.json()
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error querying ArcGIS FeatureServer: {e}")
+        return None
 
 
 def download_and_unzip(url, output_dir):
@@ -113,6 +160,7 @@ def smooth_raster_and_reproject_to_4326(input_file, output_file):
     command = [
         "gdalwarp",
         "-r", "bilinear",
+        # "-tr", "0.0001", "0.0001", # DEBUGGING
         "-tr", "0.000001", "0.000001",
         "-t_srs", "EPSG:4326",
         input_file,
@@ -150,49 +198,83 @@ def clip_raster_to_parquet(input_raster, output_raster, cutline_file):
         print(f"Error occurred while running gdalwarp: {e}")
 
 
-# Clean up old table
-def drop_table_if_exists(table_name, conn):
+def generate_contours(input_file, interval, survey_output):
     """
-    Drop a table if it exists in the PostGIS database.
+    Generate contours from a raster and write them to a Parquet file.
     """
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute(f"""
-            DO $$
-            BEGIN
-                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = %s) THEN
-                    EXECUTE 'DROP TABLE ' || quote_ident(%s) || ' CASCADE';
-                END IF;
-            END;
-            $$ LANGUAGE plpgsql;
-            """, (table_name, table_name))
-            conn.commit()
-            print(f"Table {table_name} dropped if it existed.")
-    except Exception as e:
-        print(f"Error while dropping table {table_name}: {e}")
-
-
-# make vector contours at a given interval (meters), and write them to a postgis table
-def generate_contours_and_write_to_postgis(input_file, interval, table_name, postgis_connection):
-    """
-    Generate contours from a raster and write them to PostGIS.
-    """
-    print(f"Starting to generate contours {table_name}.")
+    output_file = os.path.join(survey_output, f"bathymetry_contours_{interval}.parquet")
+    print(f"Starting to generate contours and save to {output_file}.")
+    
     command = [
         "gdal_contour",
-        "-i", str(interval / 100),  # Interval of contours in meters
+        "-i", str(interval / 100),  # Interval of contours in meters (e.g., 0.1 for 10 cm)
         "-b", "1",
-        "-f", "PostgreSQL",
-        "-a", "depth_m",  # Attribute name in table
+        "-f", "Parquet",
+        "-a", "depth_m",  # Attribute name in the output
         input_file,
-        f"PG:{postgis_connection}",
-        "-nln", table_name
-    ]    
+        output_file
+    ]
+    
     try:
         subprocess.run(command, check=True)
-        print(f"Contours generated and saved to PostGIS: {table_name}")
+        print(f"Contours generated and saved to Parquet: {output_file}")
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while running gdal_contour: {e}")
+
+
+# for each interval, write a combined parquet, that contains all surveys. then for each interval write the combined parquet to postgis
+def collect_parquets_and_write_postgis(survey_names, output_dir, intervals, postgis_connection):
+    """
+    For each interval, combine Parquet files from all surveys, write a combined Parquet file, 
+    and then write it to a PostGIS table.
+
+    Args:
+        survey_names (list): List of survey names.
+        output_dir (str): Directory containing survey folders.
+        intervals (list): List of intervals (e.g., [100, 200]).
+        postgis_connection (str): Connection string for PostGIS (e.g., 'host=localhost dbname=postgres user=postgres password=postgres').
+    """
+    for interval in intervals:
+        combined_gdf = []
+
+        # Combine GeoParquet files for the current interval
+        for survey_name in survey_names:
+            survey_output = os.path.join(output_dir, survey_name)
+            parquet_file = os.path.join(survey_output, f"bathymetry_contours_{interval}.parquet")
+            if os.path.exists(parquet_file):
+                print(f"Reading GeoParquet file: {parquet_file}")
+                gdf = gpd.read_parquet(parquet_file)
+                combined_gdf.append(gdf)
+            else:
+                print(f"GeoParquet file not found: {parquet_file}")
+
+        if combined_gdf:
+            # Combine all GeoDataFrames into one
+            combined_gdf = gpd.GeoDataFrame(pd.concat(combined_gdf, ignore_index=True), crs=gdf.crs)
+
+            # Write the combined GeoParquet file
+            combined_parquet_file = os.path.join(output_dir, f"combined_bathymetry_contours_{interval}.parquet")
+            combined_gdf.to_parquet(combined_parquet_file)
+            print(f"Combined GeoParquet file written to: {combined_parquet_file}")
+
+            # Write the combined GeoParquet to PostGIS using ogr2ogr
+            table_name = f"bathymetry_contours_{interval}"
+            try:
+                command = [
+                    "ogr2ogr",
+                    "-f", "PostgreSQL",
+                    f"PG:{postgis_connection}",
+                    combined_parquet_file,
+                    "-nln", table_name,
+                    "-overwrite"
+                ]
+                subprocess.run(command, check=True)
+                print(f"Data successfully written to PostGIS table: {table_name}")
+            except subprocess.CalledProcessError as e:
+                print(f"Error writing to PostGIS with ogr2ogr: {e}")
+        else:
+            print(f"No data found for interval {interval}.")
+
 
 def simplify_and_smooth_lines_in_postgis(conn, table_name, tolerance=0.000000007, smoothing_iterations=6):
     """
@@ -209,11 +291,11 @@ def simplify_and_smooth_lines_in_postgis(conn, table_name, tolerance=0.000000007
     try:
         sql = f"""
         UPDATE {table_name}
-        SET wkb_geometry = ST_ChaikinSmoothing(
-            ST_SimplifyVW(wkb_geometry, {tolerance}),
+        SET geometry = ST_ChaikinSmoothing(
+            ST_SimplifyVW(geometry, {tolerance}),
             {smoothing_iterations}
         )
-        WHERE ST_NumPoints(wkb_geometry) > 2;  -- Only apply to geometries with more than 2 points
+        WHERE ST_NumPoints(geometry) > 2;  -- Only apply to geometries with more than 2 points
         """
         
         with conn.cursor() as cursor:
@@ -234,47 +316,89 @@ def add_spatial_index(conn, table_name):
     print(f"Starting to add spatial index {table_name}.")
     try:
         with conn.cursor() as cursor:
-            cursor.execute(f"CREATE INDEX ON {table_name} USING GIST (wkb_geometry);")
+            cursor.execute(f"CREATE INDEX ON {table_name} USING GIST (geometry);")
             conn.commit()
             print(f"Spatial index created on {table_name}.")
     except Exception as e:
         print(f"Error while creating spatial index on {table_name}: {e}")
 
 
-def write_usace_contours_to_postgis(parquet_file, table_name, postgis_connection):
+# TODO: refactor this function so that it can be handled as part of collect_parquets_and_write_postgis 
+def write_usace_contours_to_postgis(survey_names, output_dir, postgis_connection):
     """
-    Write contours from a Parquet file to a PostGIS table using ogr2ogr.
-    
-    Args:
-        parquet_file (str): Path to the Parquet file containing the contours.
-        table_name (str): Name of the target PostGIS table.
-        db_url (str): URL to the PostGIS database (e.g., "PG:host=localhost user=username dbname=your_database password=password").
-    """
-    try:
-        command = [
-            "ogr2ogr",
-            "-f", "PostGIS",
-            f"PG:{postgis_connection}",
-            parquet_file,
-            "-nln", table_name,
-            "-overwrite"
-        ]
-        subprocess.run(command, check=True)
-        print(f"Contours successfully written to the PostGIS table '{table_name}'.")
+    Gather all 'ElevationContour_ALL.parquet' files from each survey folder, 
+    combine them, and write the combined data to PostGIS table 'usace_contours_100'.
 
-    except subprocess.CalledProcessError as e:
-        print(f"Error occurred while writing contours to PostGIS: {e}")
+    Args:
+        survey_names (list): List of survey names.
+        output_dir (str): Directory containing survey folders.
+        postgis_connection (str): Connection string for PostGIS (e.g., 'host=localhost dbname=postgres user=postgres password=postgres').
+    """
+    combined_gdf = []
+
+    # Collect and combine all ElevationContour_ALL.parquet files
+    for survey_name in survey_names:
+        survey_output = os.path.join(output_dir, survey_name)
+        parquet_file = os.path.join(survey_output, "ElevationContour_ALL.parquet")
+
+        if os.path.exists(parquet_file):
+            print(f"Reading Parquet file: {parquet_file}")
+            gdf = gpd.read_parquet(parquet_file)
+            # Ensure the correct geometry column is used
+            if 'Shape' in gdf.columns:
+                gdf = gdf.rename(columns={'Shape': 'geometry'})
+                gdf = gpd.GeoDataFrame(gdf, geometry='geometry')
+            combined_gdf.append(gdf)
+        else:
+            print(f"Parquet file not found: {parquet_file}")
+
+    if combined_gdf:
+        # Combine all GeoDataFrames into one
+        combined_gdf = gpd.GeoDataFrame(pd.concat(combined_gdf, ignore_index=True), crs=gdf.crs)
+
+        # Write the combined GeoParquet file
+        combined_parquet_file = os.path.join(output_dir, "combined_elevation_contours.parquet")
+        combined_gdf.to_parquet(combined_parquet_file)
+        print(f"Combined GeoParquet file written to: {combined_parquet_file}")
+
+        # Use ogr2ogr to write the combined Parquet to PostGIS
+        table_name = "usace_contours_100"
+        try:
+            command = [
+                "ogr2ogr",
+                "-f", "PostgreSQL",
+                f"PG:{postgis_connection}",
+                combined_parquet_file,
+                "-nln", table_name,
+                "-overwrite"
+            ]
+            subprocess.run(command, check=True)
+            print(f"Data successfully written to PostGIS table: {table_name}")
+        except subprocess.CalledProcessError as e:
+            print(f"Error writing to PostGIS with ogr2ogr: {e}")
+    else:
+        print("No data found to combine.")
 
 
 def main():
     print("Starting pipeline.")
-    url = "https://ehydroprod.blob.core.usgovcloudapi.net/ehydro-surveys/CENWS/CENWS_DIS_GH_10_WHCX_20240717_CS_E_5_12_614.ZIP"
-    survey_name = "GH_10_WHCX_20240717_CS_E_5_12_614"
-    postgis_connection = "host=localhost user=postgres dbname=postgres password=postgres"
+
+    bbox = (-75.0, 40.0, -74.5, 40.5) # to filter the surveys
+    start_date = '2024-01-01' # to filter the surveys
+    # start_date = '2024-10-10' # to filter the surveys # just for debugging
+    surveys = get_surveys(bbox, start_date)
+
+    if surveys:
+        print(surveys)
+    else:
+        print("No surveys found. Exiting")
+        exit()
+    
     contour_intervals = [10, 50, 100, 500] # this is in centimeters so that table names don't have decimals
+    # contour_intervals = [100, 500] # DEBUGGING
+    output_dir = "C:\\aaaWork\\orca"
 
-    output_dir = "C:/Users/William Jones/Downloads"
-
+    postgis_connection = "host=localhost user=postgres dbname=postgres password=postgres"
     # Establish a single PostGIS connection
     try:
         conn_params = {}
@@ -291,36 +415,45 @@ def main():
         )
         print("Connected to PostGIS.")
         
-        download_and_unzip(url, output_dir)
-    
-        input_gdb = os.path.join(output_dir, survey_name + ".gdb")
-        layers = ["SurveyJob", "SurveyPoint", "ElevationContour_ALL"]
-
-        convert_gdb_to_geoparquet(input_gdb, output_dir, layers)
+        survey_names = [] # this list will be used to join the surveys into a single dataset
+        # download each survey and process them, then merge all vectors and then write them to postgres as a single table.
+        for survey in surveys["features"]:
+            url = survey["attributes"]["sourcedatalocation"]
+            survey_name = url.split("/")[-1].replace(".ZIP", "").replace("CENAP_DIS_", "")
+            survey_names.append(survey_name)
+            
+            survey_output = os.path.join(output_dir, survey_name)
+            
+            download_and_unzip(url, survey_output)
         
-        survey_point_file = "C:/Users/William Jones/Downloads/SurveyPoint.parquet"
-        interpolated_raster_file = "C:/Users/William Jones/Downloads/bathymetry.tif"
-        interpolate_raster_from_survey_points(survey_point_file, interpolated_raster_file)
+            input_gdb = os.path.join(survey_output, survey_name + ".gdb")
+            layers = ["SurveyJob", "SurveyPoint", "ElevationContour_ALL"]
+
+            convert_gdb_to_geoparquet(input_gdb, survey_output, layers)
         
-        smoothed_raster_file = "C:/Users/William Jones/Downloads/bathymetry_smoothed.tif"
-        smooth_raster_and_reproject_to_4326(interpolated_raster_file, smoothed_raster_file)
+            survey_point_file = os.path.join(survey_output, "SurveyPoint.parquet")
+            interpolated_raster_file =  os.path.join(survey_output, "bathymetry.tif")
+            interpolate_raster_from_survey_points(survey_point_file, interpolated_raster_file)
+            
+            smoothed_raster_file =  os.path.join(survey_output, "bathymetry_smoothed.tif")
+            smooth_raster_and_reproject_to_4326(interpolated_raster_file, smoothed_raster_file)
 
-        clipped_raster_file = "C:/Users/William Jones/Downloads/bathymetry_clipped.tif"
-        cutline_file = "C:/Users/William Jones/Downloads/SurveyJob.parquet"
-        clip_raster_to_parquet(smoothed_raster_file, clipped_raster_file, cutline_file)
+            clipped_raster_file = os.path.join(survey_output, "bathymetry_clipped.tif")
+            cutline_file = os.path.join(survey_output, "SurveyJob.parquet")
+            clip_raster_to_parquet(smoothed_raster_file, clipped_raster_file, cutline_file)
 
-        # Generate contours and process for each interval
+            for interval in contour_intervals:
+                generate_contours(clipped_raster_file, interval, survey_output)
+
+        collect_parquets_and_write_postgis(survey_names, output_dir, contour_intervals, postgis_connection)
+
         for interval in contour_intervals:
             table_name = f"bathymetry_contours_{interval}"
-            drop_table_if_exists(table_name, conn)
-            generate_contours_and_write_to_postgis(clipped_raster_file, interval, table_name, postgis_connection)
             simplify_and_smooth_lines_in_postgis(conn, table_name)
             add_spatial_index(conn, table_name)
-            
-        # write USACE's contours to postgis for a visual comparison
-        usace_contours = "C:/Users/William Jones/Downloads/ElevationContour_ALL.parquet"
-        write_usace_contours_to_postgis(usace_contours, "usace_contours_100", postgis_connection)
 
+        # # write USACE's contours to postgis for a visual comparison
+        write_usace_contours_to_postgis(survey_names, output_dir, postgis_connection)
 
         print("Pipeline ran successfully.")
     except Exception as e:
