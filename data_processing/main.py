@@ -127,6 +127,35 @@ def smooth_raster_and_reproject_to_4326(input_file, output_file):
     print(f"Raster smoothed: {output_file}")
 
 
+def clip_raster_to_parquet(input_raster, output_raster, cutline_file):
+    """
+    Clips a raster using a polygon from a GeoParquet file (SurveyJob.parquet) using gdalwarp.
+
+    Args:
+        input_raster (str): Path to the input raster file (e.g., bathymetry_smoothed.tif).
+        output_raster (str): Path to the output clipped raster file (e.g., bathymetry_clipped.tif).
+        cutline_file (str): Path to the GeoParquet file (e.g., SurveyJob.parquet).
+    """
+    # Build the gdalwarp command for clipping the raster with the GeoParquet cutline
+    command = [
+        "gdalwarp",                             # gdalwarp command
+        "-overwrite",                           # Overwrite the output if it exists
+        "-t_srs", "EPSG:4326",                  # Target spatial reference system (EPSG:4326)
+        "-of", "GTiff",                         # Output format (GeoTIFF)
+        "-cutline", cutline_file,               # Input GeoParquet file to use for clipping
+        "-crop_to_cutline",                     # Crop the raster to the cutline
+        input_raster,                           # Input raster file (bathymetry_smoothed.tif)
+        output_raster                           # Output clipped raster file (bathymetry_clipped.tif)
+    ]
+    
+    # Run the command
+    try:
+        subprocess.run(command, check=True)
+        print(f"Raster successfully clipped and saved to {output_raster}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred while running gdalwarp: {e}")
+
+
 # Clean up old table
 def drop_table_if_exists(interval, conn):
     """
@@ -237,6 +266,10 @@ def main():
     
     smoothed_raster_file = "C:/Users/William Jones/Downloads/bathymetry_smoothed.tif"
     smooth_raster_and_reproject_to_4326(interpolated_raster_file, smoothed_raster_file)
+
+    clipped_raster_file = "C:/Users/William Jones/Downloads/bathymetry_clipped.tif"
+    cutline_file = "C:/Users/William Jones/Downloads/SurveyJob.parquet"
+    clip_raster_to_parquet(smoothed_raster_file, clipped_raster_file, cutline_file)
     
     """
     # Establish a single PostGIS connection
