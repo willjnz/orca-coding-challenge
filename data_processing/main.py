@@ -79,16 +79,46 @@ def convert_gdb_to_geoparquet(input_gdb, output_dir, layers):
     for layer in layers:
         output_file = f"{output_dir}/{layer}.parquet"
         convert_gdb_layer_to_geoparquet(input_gdb, output_file, layer)
+        
+
+def interpolate_raster_from_survey_points(input_file, output_raster, layer_name="SurveyPoint", zfield="Z_depth"):
+    """
+    Interpolates a raster grid from survey points using gdal_grid.
+    
+    Args:
+        input_file (str): Path to the input vector file (GeoParquet or GDB).
+        output_raster (str): Path to the output raster file (e.g., .tif).
+        layer_name (str): Name of the layer to use for interpolation (default is "SurveyPoint").
+        zfield (str): Name of the field in the vector data to use for Z-values (default is "Z_depth").
+    """
+    # Build the gdal_grid command
+    command = [
+        "gdal_grid",                             # GDAL grid command
+        "-l", layer_name,                        # Layer name (SurveyPoint)
+        "-zfield", zfield,                       # Field to use for Z-values (e.g., "Z_depth")
+        "-a", "invdistnn:power=2.0:smoothing=200.0:radius=180.0:max_points=8:min_points=0:nodata=0.0",  # Inverse distance algorithm
+        "-ot", "Float32",                        # Output data type (32-bit float)
+        "-of", "GTiff",                          # Output format (GeoTIFF)
+        input_file,                              # Input vector file (GeoParquet or GDB)
+        output_raster                            # Output raster file path
+    ]
+    
+    # Run the command
+    try:
+        subprocess.run(command, check=True)
+        print(f"Raster grid successfully interpolated and saved to {output_raster}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred while running gdal_grid: {e}")
 
 
 # Smooth the raster using gdalwarp
-def smooth_raster(input_file, output_file):
+def smooth_raster_and_reproject_to_4326(input_file, output_file):
     print("Starting to smooth the raster.")
     command = [
         "gdalwarp",
         "-r", "bilinear",
-        # TODO: play with this value to see what is best for smoothing
-        "-tr", "0.0033334", "0.0033334",  # Assuming the target cell size is 90m in degrees
+        "-tr", "0.000001", "0.000001",
+        "-t_srs", "EPSG:4326",
         input_file,
         output_file,
         "-overwrite"
@@ -201,6 +231,13 @@ def main():
 
     convert_gdb_to_geoparquet(input_gdb, output_dir, layers)
     
+    survey_point_file = "C:/Users/William Jones/Downloads/SurveyPoint.parquet"
+    interpolated_raster_file = "C:/Users/William Jones/Downloads/bathymetry.tif"
+    interpolate_raster_from_survey_points(survey_point_file, interpolated_raster_file)
+    
+    smoothed_raster_file = "C:/Users/William Jones/Downloads/bathymetry_smoothed.tif"
+    smooth_raster_and_reproject_to_4326(interpolated_raster_file, smoothed_raster_file)
+    
     """
     # Establish a single PostGIS connection
     try:
@@ -217,12 +254,6 @@ def main():
             port=conn_params.get("port", 5432)
         )
         print("Connected to PostGIS.")
-
-        # Download the raw image
-        download_data(url, raw_image_file)
-
-        # Smooth the raster
-        smooth_raster(raw_image_file, smoothed_raster_file)
 
         # Generate contours and process for each interval
         for interval in contour_intervals:
