@@ -156,6 +156,34 @@ def clip_raster_to_parquet(input_raster, output_raster, cutline_file):
         print(f"Error occurred while running gdalwarp: {e}")
 
 
+def create_contours(input_raster, output_contours, contour_interval):
+    """
+    Creates contours from a raster file and saves them to a GeoParquet file.
+
+    Args:
+        input_raster (str): Path to the input raster file (e.g., bathymetry_clipped.tif).
+        output_contours (str): Path to the output GeoParquet file for contours (e.g., contours_10m.parquet).
+        contour_interval (float): Interval for the contours.
+    """
+    # Build the gdal_contour command to create contours from the raster
+    command = [
+        "gdal_contour",                       # gdal_contour command
+        "-b", "1",                            # Band number (1, assuming single-band raster)
+        "-a", "depth_m",                      # Attribute name for contour values
+        "-i", str(contour_interval / 100),          # Contour interval (e.g., 10.0 meters). interval / 100 because original is in cm
+        "-f", "Parquet",                      # Output format (GeoParquet)
+        input_raster,                         # Input raster file
+        output_contours                       # Output GeoParquet file for contours
+    ]
+    
+    # Run the command
+    try:
+        subprocess.run(command, check=True)
+        print(f"Contours successfully created and saved to {output_contours}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred while running gdal_contour: {e}")
+
+
 # Clean up old table
 def drop_table_if_exists(interval, conn):
     """
@@ -245,11 +273,8 @@ def main():
     # Set up parameters
     url = "https://ehydroprod.blob.core.usgovcloudapi.net/ehydro-surveys/CENWS/CENWS_DIS_GH_10_WHCX_20240717_CS_E_5_12_614.ZIP"
     survey_name = "GH_10_WHCX_20240717_CS_E_5_12_614"
-    # raw_image_file = "exportImage.tiff"
-    # smoothed_raster_file = "bathymetry_smoothed.tiff"
-    # postgis_connection = "host=localhost user=postgres dbname=postgres password=postgres"
-    # contour_intervals = [50, 100, 500, 100000] # this is in centimeters so that table names don't have decimals
-
+    postgis_connection = "host=localhost user=postgres dbname=postgres password=postgres"
+    contour_intervals = [10, 50, 100, 500] # this is in centimeters so that table names don't have decimals
 
     output_dir = "C:/Users/William Jones/Downloads"
 
@@ -270,6 +295,22 @@ def main():
     clipped_raster_file = "C:/Users/William Jones/Downloads/bathymetry_clipped.tif"
     cutline_file = "C:/Users/William Jones/Downloads/SurveyJob.parquet"
     clip_raster_to_parquet(smoothed_raster_file, clipped_raster_file, cutline_file)
+
+
+    # Generate contours and process for each interval
+    for interval in contour_intervals:
+        output_contours = f"C:/Users/William Jones/Downloads/contours_{interval}cm.parquet"
+        create_contours(clipped_raster_file, output_contours, interval)
+        # generate_contours_and_write_to_postgis(smoothed_raster_file, interval, conn, postgis_connection)
+        # simplify_lines(interval, conn)
+        # drop_table_if_exists(interval, conn)  # Drop the table if it exists
+        # add_spatial_index(interval, conn)  # Add spatial index
+    
+    
+    # TODO: also write USACE's contours to postgis for a visual comparison
+    # def write_usace_contours_to_postgis:
+    
+    
     
     """
     # Establish a single PostGIS connection
