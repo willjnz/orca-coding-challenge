@@ -1,19 +1,74 @@
 import requests
+import zipfile
+import os
 import subprocess
 import psycopg2
 
-https://ehydroprod.blob.core.usgovcloudapi.net/ehydro-surveys/CENWS/CENWS_DIS_GH_10_WHCX_20240717_CS_E_5_12_614.ZIP
+def download_and_unzip(url, output_dir):
+    """
+    Downloads a ZIP file from the provided URL and unzips it into the specified directory.
+    
+    Args:
+        url (str): URL to the ZIP file.
+        output_dir (str): Directory where the contents of the ZIP file should be extracted.
+    """
+    # Make sure the output directory exists
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-# Download the GeoTiff
-def download_data(url, output_file):
-    print("Starting to download the GeoTiff.")
+    # Download the ZIP file
+    print(f"Downloading file from {url}...")
     response = requests.get(url)
+    
+    # Check if the download was successful
     if response.status_code == 200:
-        with open(output_file, 'wb') as f:
+        zip_filename = os.path.join(output_dir, "downloaded_file.zip")
+        
+        # Save the ZIP file locally
+        with open(zip_filename, 'wb') as f:
             f.write(response.content)
-        print(f"GeoTiff downloaded successfully to {output_file}")
+        print(f"Downloaded successfully to {zip_filename}")
+        
+        # Unzip the file
+        print(f"Unzipping file to {output_dir}...")
+        with zipfile.ZipFile(zip_filename, 'r') as zip_ref:
+            zip_ref.extractall(output_dir)
+        print(f"Unzipped successfully to {output_dir}")
+        
+        # Optional: Remove the downloaded ZIP file after extraction
+        os.remove(zip_filename)
+        print(f"Deleted the downloaded ZIP file {zip_filename}")
     else:
-        print(f"Failed to download GeoTiff. Status code: {response.status_code}")
+        print(f"Failed to download file. Status code: {response.status_code}")
+
+
+def convert_gdb_to_geoparquet(input_gdb, output_file, layers):
+    """
+    Convert specific layers from a GDB file to GeoParquet format.
+
+    Args:
+        input_gdb (str): Path to the input GDB file.
+        output_file (str): Path to the output GeoParquet file.
+        layers (list): List of layer names to convert (e.g., ['SurveyJob', 'SurveyPoint']).
+    """
+    # Build the ogr2ogr command
+    command = [
+        "ogr2ogr",                      # ogr2ogr tool
+        "-f", "GeoParquet",             # Output format (GeoParquet)
+        output_file,                    # Output GeoParquet file path
+        input_gdb,                      # Input GDB file path
+    ]
+    
+    # Add layers to convert
+    for layer in layers:
+        command.extend(["-l", layer])
+    
+    # Run the command
+    try:
+        subprocess.run(command, check=True)
+        print(f"File successfully converted to {output_file}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred while running ogr2ogr: {e}")
 
 
 # Smooth the raster using gdalwarp
@@ -119,27 +174,25 @@ def add_spatial_index(interval, conn):
 def main():
     print("Starting pipeline.")
     # Set up parameters
-    # aoi_bounding_box = "-131.79583,37.87750,-124.29583,43.89500" # this is very large
-    aoi_bounding_box = "-126.21,41.04,-124.08,41.84"
-    url = (
-        "https://gis.ngdc.noaa.gov/arcgis/rest/services/multibeam_mosaic/ImageServer/exportImage?"
-        f"bbox={aoi_bounding_box}&"
-        "bboxSR=4326&"
-        "size=9000,7221&"
-        "imageSR=4326&"
-        "format=tiff&"
-        "nodata=0&"
-        "pixelType=F32&"
-        "interpolation=RSP_NearestNeighbor&"
-        "compression=LZ77&"
-        'renderingRule={"rasterFunction":"none"}&'
-        "f=image"
-    )
-    raw_image_file = "exportImage.tiff"
-    smoothed_raster_file = "bathymetry_smoothed.tiff"
-    postgis_connection = "host=localhost user=postgres dbname=postgres password=postgres"
-    contour_intervals = [50, 100, 500, 100000] # this is in centimeters so that table names don't have decimals
+    url = "https://ehydroprod.blob.core.usgovcloudapi.net/ehydro-surveys/CENWS/CENWS_DIS_GH_10_WHCX_20240717_CS_E_5_12_614.ZIP"
+    survey_name = "GH_10_WHCX_20240717_CS_E_5_12_614"
+    # raw_image_file = "exportImage.tiff"
+    # smoothed_raster_file = "bathymetry_smoothed.tiff"
+    # postgis_connection = "host=localhost user=postgres dbname=postgres password=postgres"
+    # contour_intervals = [50, 100, 500, 100000] # this is in centimeters so that table names don't have decimals
 
+
+    output_dir = "C:/Users/William Jones/Downloads"
+
+    download_and_unzip(url, output_dir)
+    
+    input_gdb = os.path.join(output_dir, survey_name + ".gdb")
+    output_geoparquet = os.path.join(output_dir, survey_name + ".parquet")
+    layers = ["SurveyJob", "SurveyPoint"]  # Layers to convert
+
+    convert_gdb_to_geoparquet(input_gdb, output_geoparquet, layers)
+    
+    """
     # Establish a single PostGIS connection
     try:
         conn_params = {}
@@ -175,7 +228,8 @@ def main():
     finally:
         if 'conn' in locals() and conn:
             conn.close()
-            print("PostGIS connection closed.")  
+            print("PostGIS connection closed.")
+    """
 
 
 if __name__ == "__main__":
