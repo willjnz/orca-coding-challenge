@@ -150,7 +150,7 @@ export default function App(): JSX.Element {
       container: mapContainer.current as unknown as HTMLElement,
       style: 'mapbox://styles/mapbox/streets-v12',
       center: [-122.50131047087203, 37.78496010360176],
-      zoom: 12,
+      zoom: 8,
     });
 
     // Add zoom and rotation controls
@@ -223,7 +223,12 @@ export default function App(): JSX.Element {
         }}
         className="mapboxgl-ctrl mapboxgl-ctrl-group"
       >
-        <h3>Contour Interval (m)</h3>
+        <p>
+          Surveys are shown within the black box, if they occurred after
+          2024-10-20.
+        </p>
+        <hr />
+        <p>Select the interval (in meters), that you wish to visualize:</p>
         {intervals.map((interval) => (
           <label key={interval}>
             <input
@@ -236,8 +241,9 @@ export default function App(): JSX.Element {
             {parseInt(interval) / 100}
           </label>
         ))}
+        <hr />
         <div className="legend-container">
-          <h3>Depth (m)</h3>
+          <p>Depth (m)</p>
           <div className="legend">
             {legendData.map((item, index) => (
               <div key={index} className="legend-item">
@@ -249,6 +255,7 @@ export default function App(): JSX.Element {
               </div>
             ))}
           </div>
+          <hr />
           <p>
             Blue lines are created by my pipeline. When 1m is activated, USACE's
             contours show as red lines for comparison.
