@@ -277,7 +277,7 @@ def collect_parquets_and_write_postgis(survey_names, output_dir, intervals, post
             print(f"No data found for interval {interval}.")
 
 
-def simplify_and_smooth_lines_in_postgis(conn, table_name, tolerance=0.000000007, smoothing_iterations=8):
+def simplify_and_smooth_lines_in_postgis(conn, table_name, tolerance=0.000000007, smoothing_iterations=4):
     """
     Simplify and smooth the vector lines in the PostGIS table using ST_SimplifyVW and ST_ChaikinSmoothing.
 
@@ -285,7 +285,7 @@ def simplify_and_smooth_lines_in_postgis(conn, table_name, tolerance=0.000000007
         conn (psycopg2.Connection): Connection to the PostGIS database.
         table_name (str): Name of the PostGIS table containing geometries to process.
         tolerance (float): Tolerance for simplification using ST_SimplifyVW (e.g., 0.000000007 degrees).
-        smoothing_iterations (int): Number of iterations for smoothing using ST_ChaikinSmoothing (default is 8).
+        smoothing_iterations (int): Number of iterations for smoothing using ST_ChaikinSmoothing (default is 4).
     """
     print(f"Starting to simplify and smooth contours in table {table_name}.")
 
@@ -296,7 +296,6 @@ def simplify_and_smooth_lines_in_postgis(conn, table_name, tolerance=0.000000007
             ST_SimplifyVW(geometry, {tolerance}),
             {smoothing_iterations}
         )
-        WHERE ST_NumPoints(geometry) > 2;  -- Only apply to geometries with more than 2 points
         """
         
         with conn.cursor() as cursor:
@@ -471,6 +470,7 @@ def main():
 
         # # write USACE's contours to postgis for a visual comparison
         write_usace_contours_to_postgis(survey_names, output_dir, postgis_connection)
+        add_spatial_index(conn, "usace_contours_500")
 
         print("Pipeline ran successfully.")
     except Exception as e:
