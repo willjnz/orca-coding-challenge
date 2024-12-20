@@ -111,7 +111,7 @@ def convert_gdb_layer_to_geoparquet(input_gdb, output_file, layer_name):
         subprocess.run(command, check=True)
         print(f"Layer '{layer_name}' successfully converted to {output_file}")
     except subprocess.CalledProcessError as e:
-        print(f"Error occurred while running ogr2ogr: {e}")
+        print(f"Error occurred while running ogr2ogr convert_gdb_layer_to_geoparquet: {e}")
 
 def convert_gdb_to_geoparquet(input_gdb, output_dir, layers):
     """
@@ -171,38 +171,35 @@ def smooth_raster_and_reproject_to_4326(input_file, output_file):
     print(f"Raster smoothed: {output_file}")
 
 
-def clip_raster_to_parquet(input_raster, output_raster, cutline_file):
+def clip_vector_to_parquet(input_vector, output_vector, clip_mask_file):
     """
-    Clips a raster using a polygon from a GeoParquet file (SurveyJob.parquet) using gdalwarp.
+    Clips a vector GeoParquet layer using a polygon from another GeoParquet file as the clip mask.
 
     Args:
-        input_raster (str): Path to the input raster file (e.g., bathymetry_smoothed.tif).
-        output_raster (str): Path to the output clipped raster file (e.g., bathymetry_clipped.tif).
-        cutline_file (str): Path to the GeoParquet file (e.g., SurveyJob.parquet).
+        input_vector (str): Path to the input vector GeoParquet file (e.g., input_data.parquet).
+        output_vector (str): Path to the output clipped vector GeoParquet file (e.g., clipped_data.parquet).
+        clip_mask_file (str): Path to the GeoParquet file used as the clip mask (e.g., SurveyJob.parquet).
     """
     command = [
-        "gdalwarp",
+        "ogr2ogr",
         "-overwrite",
-        "-t_srs", "EPSG:4326",
-        "-of", "GTiff",
-        "-cutline", cutline_file, 
-        "-crop_to_cutline",
-        input_raster,
-        output_raster
+        "-f", "Parquet",
+        output_vector,
+        input_vector,
+        "-clipsrc", clip_mask_file
     ]
-    
+
     try:
         subprocess.run(command, check=True)
-        print(f"Raster successfully clipped and saved to {output_raster}")
+        print(f"Vector successfully clipped and saved to {output_vector}")
     except subprocess.CalledProcessError as e:
-        print(f"Error occurred while running gdalwarp: {e}")
+        print(f"Error occurred while running ogr2ogr clip_vector_to_parquet: {e}")
 
 
-def generate_contours(input_file, interval, survey_output):
+def generate_contours(input_file, interval, survey_output, output_file):
     """
     Generate contours from a raster and write them to a Parquet file.
     """
-    output_file = os.path.join(survey_output, f"bathymetry_contours_{interval}.parquet")
     print(f"Starting to generate contours and save to {output_file}.")
     
     command = [
@@ -240,7 +237,7 @@ def collect_parquets_and_write_postgis(survey_names, output_dir, intervals, post
         # Combine GeoParquet files for the current interval
         for survey_name in survey_names:
             survey_output = os.path.join(output_dir, survey_name)
-            parquet_file = os.path.join(survey_output, f"bathymetry_contours_{interval}.parquet")
+            parquet_file = os.path.join(survey_output, f"bathymetry_contours_{interval}_clipped.parquet")
             if os.path.exists(parquet_file):
                 print(f"Reading GeoParquet file: {parquet_file}")
                 gdf = gpd.read_parquet(parquet_file)
@@ -276,7 +273,7 @@ def collect_parquets_and_write_postgis(survey_names, output_dir, intervals, post
             print(f"No data found for interval {interval}.")
 
 
-def simplify_and_smooth_lines_in_postgis(conn, table_name, tolerance=0.000000007, smoothing_iterations=6):
+def simplify_and_smooth_lines_in_postgis(conn, table_name, tolerance=0.000000007, smoothing_iterations=8):
     """
     Simplify and smooth the vector lines in the PostGIS table using ST_SimplifyVW and ST_ChaikinSmoothing.
 
@@ -284,7 +281,7 @@ def simplify_and_smooth_lines_in_postgis(conn, table_name, tolerance=0.000000007
         conn (psycopg2.Connection): Connection to the PostGIS database.
         table_name (str): Name of the PostGIS table containing geometries to process.
         tolerance (float): Tolerance for simplification using ST_SimplifyVW (e.g., 0.000000007 degrees).
-        smoothing_iterations (int): Number of iterations for smoothing using ST_ChaikinSmoothing (default is 6).
+        smoothing_iterations (int): Number of iterations for smoothing using ST_ChaikinSmoothing (default is 8).
     """
     print(f"Starting to simplify and smooth contours in table {table_name}.")
 
@@ -324,10 +321,15 @@ def add_spatial_index(conn, table_name):
 
 
 # TODO: refactor this function so that it can be handled as part of collect_parquets_and_write_postgis 
+import os
+import geopandas as gpd
+import pandas as pd
+import subprocess
+
 def write_usace_contours_to_postgis(survey_names, output_dir, postgis_connection):
     """
     Gather all 'ElevationContour_ALL.parquet' files from each survey folder, 
-    combine them, and write the combined data to PostGIS table 'usace_contours_100'.
+    reproject to EPSG:4326, combine them, and write the combined data to PostGIS table 'usace_contours_100'.
 
     Args:
         survey_names (list): List of survey names.
@@ -348,13 +350,21 @@ def write_usace_contours_to_postgis(survey_names, output_dir, postgis_connection
             if 'Shape' in gdf.columns:
                 gdf = gdf.rename(columns={'Shape': 'geometry'})
                 gdf = gpd.GeoDataFrame(gdf, geometry='geometry')
+
+            # Reproject to EPSG:4326
+            if gdf.crs is not None:
+                gdf = gdf.to_crs(epsg=4326)
+            else:
+                print(f"Warning: CRS not found for {parquet_file}, assuming EPSG:4326")
+                gdf.set_crs(epsg=4326, inplace=True)
+
             combined_gdf.append(gdf)
         else:
             print(f"Parquet file not found: {parquet_file}")
 
     if combined_gdf:
         # Combine all GeoDataFrames into one
-        combined_gdf = gpd.GeoDataFrame(pd.concat(combined_gdf, ignore_index=True), crs=gdf.crs)
+        combined_gdf = gpd.GeoDataFrame(pd.concat(combined_gdf, ignore_index=True), crs="EPSG:4326")
 
         # Write the combined GeoParquet file
         combined_parquet_file = os.path.join(output_dir, "combined_elevation_contours.parquet")
@@ -383,18 +393,19 @@ def write_usace_contours_to_postgis(survey_names, output_dir, postgis_connection
 def main():
     print("Starting pipeline.")
 
-    bbox = (-75.0, 40.0, -74.5, 40.5) # to filter the surveys
-    start_date = '2024-01-01' # to filter the surveys
-    # start_date = '2024-10-10' # to filter the surveys # just for debugging
+    bbox = (-123.12680722333779, 37.304461713435416, -121.87581371840625, 38.26545849376811) # to filter the surveys
+    start_date = '2024-10-20' # to filter the surveys
+    print(f"Requesting data within: {bbox}.")
+    print(f"Requesting data on or after this date: {start_date}.")
     surveys = get_surveys(bbox, start_date)
 
     if surveys:
-        print(surveys)
+        print(f"There are {len(surveys["features"])} surveys to be processed.")
     else:
         print("No surveys found. Exiting")
         exit()
     
-    contour_intervals = [10, 50, 100, 500] # this is in centimeters so that table names don't have decimals
+    contour_intervals = [50, 100, 500] # this is in centimeters so that table names don't have decimals
     # contour_intervals = [100, 500] # DEBUGGING
     output_dir = "C:\\aaaWork\\orca"
 
@@ -419,7 +430,8 @@ def main():
         # download each survey and process them, then merge all vectors and then write them to postgres as a single table.
         for survey in surveys["features"]:
             url = survey["attributes"]["sourcedatalocation"]
-            survey_name = url.split("/")[-1].replace(".ZIP", "").replace("CENAP_DIS_", "")
+            # need to remove parts of the zip file name o make the survey file name
+            survey_name = url.split("/")[-1].replace(".ZIP", "").replace("CENAP_DIS_", "").replace("CESAM_PMC_", "")
             survey_names.append(survey_name)
             
             survey_output = os.path.join(output_dir, survey_name)
@@ -438,12 +450,13 @@ def main():
             smoothed_raster_file =  os.path.join(survey_output, "bathymetry_smoothed.tif")
             smooth_raster_and_reproject_to_4326(interpolated_raster_file, smoothed_raster_file)
 
-            clipped_raster_file = os.path.join(survey_output, "bathymetry_clipped.tif")
             cutline_file = os.path.join(survey_output, "SurveyJob.parquet")
-            clip_raster_to_parquet(smoothed_raster_file, clipped_raster_file, cutline_file)
 
             for interval in contour_intervals:
-                generate_contours(clipped_raster_file, interval, survey_output)
+                coutour_file = os.path.join(survey_output, f"bathymetry_contours_{interval}.parquet")
+                generate_contours(smoothed_raster_file, interval, survey_output, coutour_file)
+                coutour_clipped_file = os.path.join(survey_output, f"bathymetry_contours_{interval}_clipped.parquet")
+                clip_vector_to_parquet(coutour_file, coutour_clipped_file, cutline_file)
 
         collect_parquets_and_write_postgis(survey_names, output_dir, contour_intervals, postgis_connection)
 

@@ -7,10 +7,10 @@ export default function App(): JSX.Element {
   const mapRef = useRef<mapboxgl.Map | null>(null); // Use ref to store the map instance
 
   // these are in centimeters
-  type TInterval = '10' | '50' | '100' | '500';
-  const intervals: TInterval[] = ['10', '50', '100', '500'];
+  type TInterval = '50' | '100' | '500';
+  const intervals: TInterval[] = ['50', '100', '500'];
 
-  const [selectedInterval, setSelectedInterval] = useState<TInterval>('50');
+  const [selectedInterval, setSelectedInterval] = useState<TInterval>('500');
   const [isMapLoaded, setIsMapLoaded] = useState(false); // To track map loading state
 
   const legendData = [
@@ -20,6 +20,8 @@ export default function App(): JSX.Element {
     { depth: 22.5, color: '#1f4063 ' },
     { depth: 30, color: '#00204d ' },
   ];
+
+  type GeoJSON = any; // TODO: type this using GeoJSON library
 
   // Function to update the vector tile layer based on the selected interval
   const updateLayer = () => {
@@ -147,7 +149,7 @@ export default function App(): JSX.Element {
       accessToken: import.meta.env.VITE_MAPBOX_ACCESS_TOKEN,
       container: mapContainer.current as unknown as HTMLElement,
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: [-74.75, 40.25],
+      center: [-122.50131047087203, 37.78496010360176],
       zoom: 12,
     });
 
@@ -158,6 +160,35 @@ export default function App(): JSX.Element {
       // Initially load the layer
       updateLayer();
       setIsMapLoaded(true);
+
+      mapRef.current!.addSource('boundingBox', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [-123.12680722333779, 37.304461713435416],
+                [-123.12680722333779, 38.26545849376811],
+                [-121.87581371840625, 38.26545849376811],
+                [-121.87581371840625, 37.304461713435416],
+                [-123.12680722333779, 37.304461713435416],
+              ],
+            ],
+          },
+        } as GeoJSON,
+      });
+
+      mapRef.current!.addLayer({
+        id: 'boundingBoxLayer',
+        type: 'line',
+        source: 'boundingBox',
+        paint: {
+          'line-color': '#000',
+          'line-width': 2,
+        },
+      });
     });
 
     // Cleanup function to remove the map when the component unmounts

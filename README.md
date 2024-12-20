@@ -24,6 +24,7 @@ The challenge is documented in Instructions.md. Here is my implementation. This 
 - I have output depth isoline polylines. These could simply be converted to polygons if needed (we would need to account for the edges of the AOI because these will cut polygons).
 - tipg is used to serve tiles from postgis because it is simple to run with Docker, and serves tiles which are performant and queryable.
 - The frontend uses modern, best practice architecture for a simple web mapping app like this.
+- I interpreted "reasonable depth intervals (e.g., 0m, 0.5m, 1m, 2m, 5m, 10m)" to mean that I should make different iterations of contours with 0.5, 1, and 5m intervals. These could be combined if desired.
   
 
 ## Strategies for optimizing processing workflows:
@@ -83,4 +84,4 @@ Follow these steps in order:
 > yarn run dev
 
 Here is an image showing my smooth 1m contours vs. USACE's jagged contours:
-![Here is an image showing my smooth 1m contours vs. USACE's jagged contours:](my%201m%20contours%20%28green%29%20comparison.png)
+![Here is an image showing my smooth 1m contours vs. USACE's jagged contours:](contour_comparison.png)
