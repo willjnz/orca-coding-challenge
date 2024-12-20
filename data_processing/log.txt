@@ -1,0 +1,220 @@
+Starting pipeline.
+Requesting data within: (-123.12680722333779, 37.304461713435416, -121.87581371840625, 38.26545849376811).
+Requesting data on or after this date: 2024-10-20.
+There are 6 surveys to be processed.
+Connected to PostGIS.
+Downloading file from https://ehydroprod.blob.core.usgovcloudapi.net/ehydro-surveys/CESPN/SF_28_D16_20241031_CS.ZIP  
+Downloaded successfully to C:\aaaWork\orca\SF_28_D16_20241031_CS\downloaded_file.zip
+Unzipping file to C:\aaaWork\orca\SF_28_D16_20241031_CS
+Unzipped successfully to C:\aaaWork\orca\SF_28_D16_20241031_CS
+Deleted the downloaded ZIP file C:\aaaWork\orca\SF_28_D16_20241031_CS\downloaded_file.zip
+Layer 'SurveyJob' successfully converted to C:\aaaWork\orca\SF_28_D16_20241031_CS/SurveyJob.parquet
+Layer 'SurveyPoint' successfully converted to C:\aaaWork\orca\SF_28_D16_20241031_CS/SurveyPoint.parquet
+Layer 'ElevationContour_ALL' successfully converted to C:\aaaWork\orca\SF_28_D16_20241031_CS/ElevationContour_ALL.parquet
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Raster grid successfully interpolated and saved to C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry.tif
+Starting to smooth the raster.
+Creating output file that is 38240P x 15753L.
+Processing C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry.tif [1/1] : 0Using internal nodata values (e.g. 0) for image C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry.tif.
+Copying nodata values from source C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry.tif to destination C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_smoothed.tif.
+...10...20...30...40...50...60...70...80...90...100 - done.
+Raster smoothed: C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_smoothed.tif
+Starting to generate contours and save to C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_contours_50.parquet.      
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_contours_50.parquet        
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_contours_50_clipped.parquet
+Starting to generate contours and save to C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_contours_100.parquet.     
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_contours_100.parquet       
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_contours_100_clipped.parquet
+Starting to generate contours and save to C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_contours_500.parquet.     
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_contours_500.parquet       
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_contours_500_clipped.parquet
+Downloading file from https://ehydroprod.blob.core.usgovcloudapi.net/ehydro-surveys/CESPN/SF_06_ANA_20241105_CS.ZIP  
+Downloaded successfully to C:\aaaWork\orca\SF_06_ANA_20241105_CS\downloaded_file.zip
+Unzipping file to C:\aaaWork\orca\SF_06_ANA_20241105_CS
+Unzipped successfully to C:\aaaWork\orca\SF_06_ANA_20241105_CS
+Deleted the downloaded ZIP file C:\aaaWork\orca\SF_06_ANA_20241105_CS\downloaded_file.zip
+Layer 'SurveyJob' successfully converted to C:\aaaWork\orca\SF_06_ANA_20241105_CS/SurveyJob.parquet
+Layer 'SurveyPoint' successfully converted to C:\aaaWork\orca\SF_06_ANA_20241105_CS/SurveyPoint.parquet
+Layer 'ElevationContour_ALL' successfully converted to C:\aaaWork\orca\SF_06_ANA_20241105_CS/ElevationContour_ALL.parquet
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Raster grid successfully interpolated and saved to C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry.tif
+Starting to smooth the raster.
+Creating output file that is 53866P x 15346L.
+Processing C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry.tif [1/1] : 0Using internal nodata values (e.g. 0) for image C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry.tif.
+Copying nodata values from source C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry.tif to destination C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_smoothed.tif.
+...10...20...30...40...50...60...70...80...90...100 - done.
+Raster smoothed: C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_smoothed.tif
+Starting to generate contours and save to C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_contours_50.parquet.      
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_contours_50.parquet        
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_contours_50_clipped.parquet
+Starting to generate contours and save to C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_contours_100.parquet.     
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_contours_100.parquet       
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_contours_100_clipped.parquet
+Starting to generate contours and save to C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_contours_500.parquet.     
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_contours_500.parquet       
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_contours_500_clipped.parquet
+Downloading file from https://ehydroprod.blob.core.usgovcloudapi.net/ehydro-surveys/CESPN/SF_27_PSC_20241021_CS.ZIP  
+Downloaded successfully to C:\aaaWork\orca\SF_27_PSC_20241021_CS\downloaded_file.zip
+Unzipping file to C:\aaaWork\orca\SF_27_PSC_20241021_CS
+Unzipped successfully to C:\aaaWork\orca\SF_27_PSC_20241021_CS
+Deleted the downloaded ZIP file C:\aaaWork\orca\SF_27_PSC_20241021_CS\downloaded_file.zip
+Layer 'SurveyJob' successfully converted to C:\aaaWork\orca\SF_27_PSC_20241021_CS/SurveyJob.parquet
+Layer 'SurveyPoint' successfully converted to C:\aaaWork\orca\SF_27_PSC_20241021_CS/SurveyPoint.parquet
+Layer 'ElevationContour_ALL' successfully converted to C:\aaaWork\orca\SF_27_PSC_20241021_CS/ElevationContour_ALL.parquet
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Raster grid successfully interpolated and saved to C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry.tif
+Starting to smooth the raster.
+Creating output file that is 170596P x 62668L.
+Processing C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry.tif [1/1] : 0Using internal nodata values (e.g. 0) for image C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry.tif.
+Copying nodata values from source C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry.tif to destination C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_smoothed.tif.
+...10...20...30...40...50...60...70...80...90...100 - done.
+Raster smoothed: C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_smoothed.tif
+Starting to generate contours and save to C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_contours_50.parquet.      
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_contours_50.parquet        
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_contours_50_clipped.parquet
+Starting to generate contours and save to C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_contours_100.parquet.     
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_contours_100.parquet       
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_contours_100_clipped.parquet
+Starting to generate contours and save to C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_contours_500.parquet.     
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_contours_500.parquet       
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_contours_500_clipped.parquet
+Downloading file from https://ehydroprod.blob.core.usgovcloudapi.net/ehydro-surveys/CESPN/SF_09_SF9_20241101_CS.ZIP  
+Downloaded successfully to C:\aaaWork\orca\SF_09_SF9_20241101_CS\downloaded_file.zip
+Unzipping file to C:\aaaWork\orca\SF_09_SF9_20241101_CS
+Unzipped successfully to C:\aaaWork\orca\SF_09_SF9_20241101_CS
+Deleted the downloaded ZIP file C:\aaaWork\orca\SF_09_SF9_20241101_CS\downloaded_file.zip
+Layer 'SurveyJob' successfully converted to C:\aaaWork\orca\SF_09_SF9_20241101_CS/SurveyJob.parquet
+Layer 'SurveyPoint' successfully converted to C:\aaaWork\orca\SF_09_SF9_20241101_CS/SurveyPoint.parquet
+Layer 'ElevationContour_ALL' successfully converted to C:\aaaWork\orca\SF_09_SF9_20241101_CS/ElevationContour_ALL.parquet
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Raster grid successfully interpolated and saved to C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry.tif
+Starting to smooth the raster.
+Creating output file that is 7477P x 3580L.
+Processing C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry.tif [1/1] : 0Using internal nodata values (e.g. 0) for image C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry.tif.
+Copying nodata values from source C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry.tif to destination C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_smoothed.tif.
+...10...20...30...40...50...60...70...80...90...100 - done.
+Raster smoothed: C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_smoothed.tif
+Starting to generate contours and save to C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_contours_50.parquet.      
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_contours_50.parquet        
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_contours_50_clipped.parquet
+Starting to generate contours and save to C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_contours_100.parquet.     
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_contours_100.parquet       
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_contours_100_clipped.parquet
+Starting to generate contours and save to C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_contours_500.parquet.     
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_contours_500.parquet       
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_contours_500_clipped.parquet
+Downloading file from https://ehydroprod.blob.core.usgovcloudapi.net/ehydro-surveys/CESPN/SF_11_D11_20241104_CS.ZIP  
+Downloaded successfully to C:\aaaWork\orca\SF_11_D11_20241104_CS\downloaded_file.zip
+Unzipping file to C:\aaaWork\orca\SF_11_D11_20241104_CS
+Unzipped successfully to C:\aaaWork\orca\SF_11_D11_20241104_CS
+Deleted the downloaded ZIP file C:\aaaWork\orca\SF_11_D11_20241104_CS\downloaded_file.zip
+Layer 'SurveyJob' successfully converted to C:\aaaWork\orca\SF_11_D11_20241104_CS/SurveyJob.parquet
+Layer 'SurveyPoint' successfully converted to C:\aaaWork\orca\SF_11_D11_20241104_CS/SurveyPoint.parquet
+Layer 'ElevationContour_ALL' successfully converted to C:\aaaWork\orca\SF_11_D11_20241104_CS/ElevationContour_ALL.parquet
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Raster grid successfully interpolated and saved to C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry.tif
+Starting to smooth the raster.
+Creating output file that is 21062P x 12121L.
+Processing C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry.tif [1/1] : 0Using internal nodata values (e.g. 0) for image C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry.tif.
+Copying nodata values from source C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry.tif to destination C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_smoothed.tif.
+...10...20...30...40...50...60...70...80...90...100 - done.
+Raster smoothed: C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_smoothed.tif
+Starting to generate contours and save to C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_contours_50.parquet.      
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_contours_50.parquet        
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_contours_50_clipped.parquet
+Starting to generate contours and save to C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_contours_100.parquet.     
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_contours_100.parquet       
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_contours_100_clipped.parquet
+Starting to generate contours and save to C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_contours_500.parquet.     
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_contours_500.parquet       
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_contours_500_clipped.parquet
+Downloading file from https://ehydroprod.blob.core.usgovcloudapi.net/ehydro-surveys/CESPN/SF_16_MIS_20241113_CS.ZIP  
+Downloaded successfully to C:\aaaWork\orca\SF_16_MIS_20241113_CS\downloaded_file.zip
+Unzipping file to C:\aaaWork\orca\SF_16_MIS_20241113_CS
+Unzipped successfully to C:\aaaWork\orca\SF_16_MIS_20241113_CS
+Deleted the downloaded ZIP file C:\aaaWork\orca\SF_16_MIS_20241113_CS\downloaded_file.zip
+Layer 'SurveyJob' successfully converted to C:\aaaWork\orca\SF_16_MIS_20241113_CS/SurveyJob.parquet
+Layer 'SurveyPoint' successfully converted to C:\aaaWork\orca\SF_16_MIS_20241113_CS/SurveyPoint.parquet
+Layer 'ElevationContour_ALL' successfully converted to C:\aaaWork\orca\SF_16_MIS_20241113_CS/ElevationContour_ALL.parquet
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Raster grid successfully interpolated and saved to C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry.tif
+Starting to smooth the raster.
+Creating output file that is 29539P x 43238L.
+Processing C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry.tif [1/1] : 0Using internal nodata values (e.g. 0) for image C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry.tif.
+Copying nodata values from source C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry.tif to destination C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_smoothed.tif.
+...10...20...30...40...50...60...70...80...90...100 - done.
+Raster smoothed: C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_smoothed.tif
+Starting to generate contours and save to C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_contours_50.parquet.      
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_contours_50.parquet        
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_contours_50_clipped.parquet
+Starting to generate contours and save to C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_contours_100.parquet.     
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_contours_100.parquet       
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_contours_100_clipped.parquet
+Starting to generate contours and save to C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_contours_500.parquet.     
+0...10...20...30...40...50...60...70...80...90...100 - done.
+Contours generated and saved to Parquet: C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_contours_500.parquet       
+Vector successfully clipped and saved to C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_contours_500_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_contours_50_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_contours_50_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_contours_50_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_contours_50_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_contours_50_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_contours_50_clipped.parquet
+Combined GeoParquet file written to: C:\aaaWork\orca\combined_bathymetry_contours_50.parquet
+Data successfully written to PostGIS table: bathymetry_contours_50
+Reading GeoParquet file: C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_contours_100_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_contours_100_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_contours_100_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_contours_100_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_contours_100_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_contours_100_clipped.parquet
+Combined GeoParquet file written to: C:\aaaWork\orca\combined_bathymetry_contours_100.parquet
+Data successfully written to PostGIS table: bathymetry_contours_100
+Reading GeoParquet file: C:\aaaWork\orca\SF_28_D16_20241031_CS\bathymetry_contours_500_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_06_ANA_20241105_CS\bathymetry_contours_500_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_27_PSC_20241021_CS\bathymetry_contours_500_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_09_SF9_20241101_CS\bathymetry_contours_500_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_11_D11_20241104_CS\bathymetry_contours_500_clipped.parquet
+Reading GeoParquet file: C:\aaaWork\orca\SF_16_MIS_20241113_CS\bathymetry_contours_500_clipped.parquet
+Combined GeoParquet file written to: C:\aaaWork\orca\combined_bathymetry_contours_500.parquet
+Data successfully written to PostGIS table: bathymetry_contours_500
+Starting to simplify and smooth contours in table bathymetry_contours_50.     
+Lines in table bathymetry_contours_50 simplified with tolerance 7e-09 and smoothed using 8 iterations.
+Starting to add spatial index bathymetry_contours_50.
+Spatial index created on bathymetry_contours_50.
+Starting to simplify and smooth contours in table bathymetry_contours_100.    
+Lines in table bathymetry_contours_100 simplified with tolerance 7e-09 and smoothed using 8 iterations.
+Starting to add spatial index bathymetry_contours_100.
+Spatial index created on bathymetry_contours_100.
+Starting to simplify and smooth contours in table bathymetry_contours_500.    
+Lines in table bathymetry_contours_500 simplified with tolerance 7e-09 and smoothed using 8 iterations.
+Starting to add spatial index bathymetry_contours_500.
+Spatial index created on bathymetry_contours_500.
+Reading Parquet file: C:\aaaWork\orca\SF_28_D16_20241031_CS\ElevationContour_ALL.parquet
+Reading Parquet file: C:\aaaWork\orca\SF_06_ANA_20241105_CS\ElevationContour_ALL.parquet
+Reading Parquet file: C:\aaaWork\orca\SF_27_PSC_20241021_CS\ElevationContour_ALL.parquet
+Reading Parquet file: C:\aaaWork\orca\SF_09_SF9_20241101_CS\ElevationContour_ALL.parquet
+Reading Parquet file: C:\aaaWork\orca\SF_11_D11_20241104_CS\ElevationContour_ALL.parquet
+Reading Parquet file: C:\aaaWork\orca\SF_16_MIS_20241113_CS\ElevationContour_ALL.parquet
+Combined GeoParquet file written to: C:\aaaWork\orca\combined_elevation_contours.parquet
+Data successfully written to PostGIS table: usace_contours_100
+Pipeline ran successfully.
+PostGIS connection closed.
+Execution time: 3528.96 seconds

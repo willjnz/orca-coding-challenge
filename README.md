@@ -11,7 +11,7 @@ The challenge is documented in Instructions.md. Here is my implementation. This 
   
 
 ## Performance
-- It takes about 5 minutes to process each survey, depending on the survey area. This is fine for this proof of concept.
+- It took 58.8 minutes to process these 6 surveys. Processing time depends on the survey area. This is fine for this proof of concept.
 - The tiles are dynamically generated very performantly, and the map application shows this.
 
 ## Tool choices and rationale:
@@ -45,11 +45,11 @@ The challenge is documented in Instructions.md. Here is my implementation. This 
 
 # Setup:
 
-Follow these steps in order:
+Please follow these steps in order:
 
 ## 1. PostgreSQL
 
-1. Install locally, use very basic credentials and schema.
+1. Install locally, use very basic credentials.
 2. Add PostGIS extension. 
 > CREATE EXTENSION postgis;
 
@@ -65,7 +65,7 @@ Follow these steps in order:
 > pip install -r requirements.txt
 5. Run main.py 
 
-## 3. Tile Server
+## 3. Tile Server (tipg)
 
 1. Update pg_hba.conf to allow the Docker network's IP range
 2. Install Docker Desktop
@@ -78,10 +78,11 @@ Follow these steps in order:
 
 **Technologies:** Vite.js, React, Typescript, Mapbox GL JS application. Displays vector tiles from tipg.
 
-1. Run:
+1. add the file application/.env with the Mapbox key
+2. Run:
 > cd application
 > npm install
 > yarn run dev
 
-Here is an image showing my smooth 1m contours vs. USACE's jagged contours:
-![Here is an image showing my smooth 1m contours vs. USACE's jagged contours:](contour_comparison.png)
+Here is an image showing my smooth 1m contours (blue) vs. USACE's jagged contours (red):
+![Here is an image showing my smooth 1m contours (blue) vs. USACE's jagged contours (red):](contour_comparison.png)

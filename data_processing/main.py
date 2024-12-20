@@ -5,6 +5,10 @@ import subprocess
 import psycopg2
 import pandas as pd
 import geopandas as gpd
+import time
+
+# Start the timer
+start_time = time.time()
 
 
 def get_surveys(bbox, start_date):
@@ -472,9 +476,12 @@ def main():
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
+        end_time = time.time()
         if 'conn' in locals() and conn:
             conn.close()
             print("PostGIS connection closed.")
+        elapsed_time = end_time - start_time
+        print(f"Execution time: {elapsed_time:.2f} seconds")
 
 
 if __name__ == "__main__":
